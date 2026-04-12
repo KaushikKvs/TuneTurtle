@@ -1,0 +1,20 @@
+## IDE
+.idea/
+*.iml
+.metadata/
+**/.metadata/
+
+## Node / frontend
+node_modules/
+dist/
+build/
+
+## Java / Maven
+target/
+*.log
+
+## OS / misc
+.DS_Store
+Thumbs.db
+npm-debug.log*
+yarn-error.log*
