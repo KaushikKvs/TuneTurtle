@@ -36,19 +36,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             return;
         }
 
-        if(requestTokenHeader !=null &&requestTokenHeader.startsWith("Bearer ")){
+        if(requestTokenHeader != null && requestTokenHeader.startsWith("Bearer ")){
             jwtToken = requestTokenHeader.substring(7);
 
             try{
                 email = jwtUtil.extractEmail(jwtToken);
 
             }catch (IllegalArgumentException e){
-                throw  new RuntimeException("Unable to get JWT Token.");
+                throw new RuntimeException("Unable to get JWT Token.");
             }catch (Exception e){
                 throw new RuntimeException(e.getMessage());
             }
-        }else{
-            throw new IllegalArgumentException("JWT Token does not begin with Bearer token.");
         }
 
         if(email != null && SecurityContextHolder.getContext().getAuthentication() == null) {

@@ -28,11 +28,15 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
-  const register = async (email, password) => {
+  const register = async (email, password, role = "USER", artistName = "", genre = "", bio = "") => {
     try {
       const response = await axios.post(`${API_BASE_URL}/api/auth/register`, {
         email,
         password,
+        role,
+        artistName,
+        genre,
+        bio
       });
       if (response.status === 200) {
         return {
@@ -63,11 +67,12 @@ export const AuthProvider = ({ children }) => {
 
       if (response.status === 200) {
         setToken(response.data.token);
-        setUser({ email: response.data.role, role: response.data.role });
+        setUser({ id: response.data.userId, email: response.data.email, role: response.data.role });
         localStorage.setItem("userToken", response.data.token);
         localStorage.setItem(
           "userData",
           JSON.stringify({
+            id: response.data.userId,
             email: response.data.email,
             role: response.data.role,
           })

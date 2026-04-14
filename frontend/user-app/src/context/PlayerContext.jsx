@@ -2,11 +2,13 @@ import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useAuth } from "./AuthContext";
 import axios from "axios";
 import { API_BASE_URL } from "./AuthContext";
+import toast from "react-hot-toast";
 
 export const PlayerContext = createContext();
 export const PlayerContextProvider = ({ children }) => {
   const [songsData, setSongsData] = useState([]);
   const [albumsData, setAlbumsData] = useState([]);
+  const [mySubscriptions, setMySubscriptions] = useState([]);
   const { user, token, getAuthHeaders } = useAuth();
 
   // Songs playing bar states
@@ -34,32 +36,59 @@ export const PlayerContextProvider = ({ children }) => {
     audioRef.current.pause();
     setPlayStatus(false);
   };
+  const checkAuthorization = (item) => {
+    if (!item) return false;
+    if (item.isFree !== false || !item.price || item.price === 0) return true; // Free
+    if (user?.role === 'ADMIN' || item.artistId === user?.id) return true; // Admin or Owner
+    return mySubscriptions.includes(item.artistId);
+  };
+
   const playWithId = async (id) => {
-    songsData.map((item) => {
-      if (id === item._id) {
-        setTrack(item);
-      }
-    });
-    await audioRef.current.play();
-    setPlayStatus(true);
+    const item = songsData.find(s => s.id === id || s._id === id);
+    if (!item) return;
+
+    if (!checkAuthorization(item)) {
+      toast.error("Premium track! Subscribe to the artist to listen.", { style: { background: '#333', color: '#fff' }});
+      return;
+    }
+
+    setTrack(item);
+    setTimeout(() => {
+      audioRef.current?.play();
+      setPlayStatus(true);
+    }, 50);
   };
+
   const previous = async () => {
-    songsData.map(async (item, index) => {
-      if (track._id === item._id && index > 0) {
-        await setTrack(songsData[index - 1]);
-        await audioRef.current.play();
-        setPlayStatus(true);
+    const currentIndex = songsData.findIndex(item => item.id === track?.id || item._id === track?._id);
+    if (currentIndex > 0) {
+      const prevItem = songsData[currentIndex - 1];
+      if (!checkAuthorization(prevItem)) {
+        toast.error("Previous track is premium. Subscribe to listen.", { style: { background: '#333', color: '#fff' }});
+        return;
       }
-    });
+      setTrack(prevItem);
+      setTimeout(() => {
+        audioRef.current?.play();
+        setPlayStatus(true);
+      }, 50);
+    }
   };
+
   const next = async () => {
-    songsData.map(async (item, index) => {
-      if (track._id === item._id && index < songsData.length - 1) {
-        await setTrack(songsData[index + 1]);
-        await audioRef.current.play();
-        setPlayStatus(true);
+    const currentIndex = songsData.findIndex(item => item.id === track?.id || item._id === track?._id);
+    if (currentIndex < songsData.length - 1 && currentIndex !== -1) {
+      const nextItem = songsData[currentIndex + 1];
+      if (!checkAuthorization(nextItem)) {
+        toast.error("Next track is premium. Subscribe to listen.", { style: { background: '#333', color: '#fff' }});
+        return;
       }
-    });
+      setTrack(nextItem);
+      setTimeout(() => {
+        audioRef.current?.play();
+        setPlayStatus(true);
+      }, 50);
+    }
   };
   const seekSong = async (e) => {
     audioRef.current.currentTime =
@@ -118,10 +147,24 @@ export const PlayerContextProvider = ({ children }) => {
     seekSong,
   };
 
+  const getSubscriptionsData = async () => {
+    try {
+      if (user) {
+        const response = await axios.get(`${API_BASE_URL}/api/transactions/my-subscriptions`, {
+          headers: getAuthHeaders(),
+        });
+        setMySubscriptions(response.data || []);
+      }
+    } catch (error) {
+      console.error("Subs err:", error);
+    }
+  };
+
   useEffect(() => {
     if (user && token) {
       getAlbumsData();
       getSongsData();
+      getSubscriptionsData();
     }
   }, [user, token]);
 

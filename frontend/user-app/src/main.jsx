@@ -7,15 +7,19 @@ import { BrowserRouter } from "react-router-dom";
 import { PlayerContextProvider } from "./context/PlayerContext.jsx";
 import { SearchProvider } from "./context/SearchContext.jsx";
 
+import { ThemeProvider } from "./context/ThemeContext.jsx";
+
 // wrapping authprovider searprovider playercontext provider so...
 createRoot(document.getElementById("root")).render(
   <BrowserRouter>
-    <AuthProvider>
-      <PlayerContextProvider>
-        <SearchProvider>
-          <App />
-        </SearchProvider>
-      </PlayerContextProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <PlayerContextProvider>
+          <SearchProvider>
+            <App />
+          </SearchProvider>
+        </PlayerContextProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </BrowserRouter>
 );

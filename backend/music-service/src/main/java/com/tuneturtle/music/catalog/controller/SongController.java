@@ -38,8 +38,11 @@ public class SongController {
     }
 
     @GetMapping
-    public ResponseEntity<?> listSongs(){
+    public ResponseEntity<?> listSongs(@RequestParam(required = false) String artistId){
         try{
+            if (artistId != null && !artistId.isEmpty()) {
+                return ResponseEntity.ok(songService.getSongsByArtistId(artistId));
+            }
             return ResponseEntity.ok(songService.getAllSongs());
         }catch (Exception e){
             return ResponseEntity.ok(new SongListResponse(false,null

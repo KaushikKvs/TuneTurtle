@@ -36,8 +36,14 @@ public class AlbumController {
     }
 
     @GetMapping
-    public ResponseEntity<?> listAlbums(){
+    public ResponseEntity<?> listAlbums(@RequestParam(required = false) String artistId){
         try {
+            System.out.println("Fetching albums for artistId: " + artistId);
+            if (artistId != null && !artistId.isEmpty()) {
+                AlbumListResponse response = albumService.getAlbumsByArtistId(artistId);
+                System.out.println("Found " + (response.getAlbums() != null ? response.getAlbums().size() : 0) + " albums");
+                return ResponseEntity.ok(response);
+            }
            return ResponseEntity.ok(albumService.getAllAlbums());
         }catch (Exception e){
             return ResponseEntity.ok(new AlbumListResponse(false,null));

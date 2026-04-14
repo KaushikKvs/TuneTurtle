@@ -1,28 +1,21 @@
 package com.tuneturtle.music.auth.dto;
 
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
-@Data
-@AllArgsConstructor
-@NoArgsConstructor
-@Builder
 public class AuthResponse {
-
-//    private Boolean success;
-//    private String message;
     private String token;
     private String email;
     private String role;
-
-//    public static AuthResponse success(String token,String email,String role){
-//        return new AuthResponse(true,"Authentication Successful",token,email,role);
-//    }
-//    public static AuthResponse error(String message){
-//        return new AuthResponse(false,message,null,null,null);
-//    }
-
+    private String userId;
+    public AuthResponse() {}
+    public AuthResponse(String token, String email, String role, String userId) { 
+        this.token = token; this.email = email; this.role = role; this.userId = userId;
+    }
+    public String getToken() { return token; }
+    public void setToken(String token) { this.token = token; }
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
+    public String getRole() { return role; }
+    public void setRole(String role) { this.role = role; }
+    public String getUserId() { return userId; }
+    public void setUserId(String userId) { this.userId = userId; }
 }

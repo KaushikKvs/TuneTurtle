@@ -3,16 +3,17 @@ package com.tuneturtle.music.auth.service;
 import com.tuneturtle.music.auth.document.User;
 import com.tuneturtle.music.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @RequiredArgsConstructor
-@Slf4j
 public class DataInitializationService implements CommandLineRunner {
 
+    private static final Logger log = LoggerFactory.getLogger(DataInitializationService.class);
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -22,17 +23,25 @@ public class DataInitializationService implements CommandLineRunner {
     }
 
     private void createDefaultAdminUser() {
+        String adminEmail = "admin@tuneturtle.com";
+        String adminPassword = "admin123";
 
-        if(!userRepository.existsByEmail("admin@tuneturtle.com")){
-            User adminUser = User.builder()
-                    .email("admin@tuneturtle.com")
-                    .password(passwordEncoder.encode("admin123"))
+        User adminUser = userRepository.findByEmail(adminEmail).orElse(null);
+
+        if (adminUser == null) {
+            adminUser = User.builder()
+                    .email(adminEmail)
+                    .password(passwordEncoder.encode(adminPassword))
                     .role(User.Role.ADMIN)
                     .build();
             userRepository.save(adminUser);
-            log.info("Default admin user created : email=admin@tuneturtle.com, password=admin123");
-        }else{
-            log.info("Admin User Already Exists");
+            log.info("Default admin user CREATED : email={}, password={}", adminEmail, adminPassword);
+        } else {
+            // Force update password to ensure sync with local dev expectations
+            adminUser.setPassword(passwordEncoder.encode(adminPassword));
+            adminUser.setRole(User.Role.ADMIN);
+            userRepository.save(adminUser);
+            log.info("Default admin user UPDATED : email={}, password={}", adminEmail, adminPassword);
         }
     }
 }

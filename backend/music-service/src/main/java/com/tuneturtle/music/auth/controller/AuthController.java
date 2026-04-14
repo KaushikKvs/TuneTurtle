@@ -43,7 +43,7 @@ public class AuthController {
 
             //Generate JWT Token
             String token = jwtUtil.generateToken(userDetails,existingUser.getRole().name());
-            return ResponseEntity.ok(new AuthResponse(token,request.getEmail(),existingUser.getRole().name()));
+            return ResponseEntity.ok(new AuthResponse(token,request.getEmail(),existingUser.getRole().name(), existingUser.getId()));
 
         }catch (BadCredentialsException e){
             return ResponseEntity.badRequest().body("Email/Password Is Incorrect.");

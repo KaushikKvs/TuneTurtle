@@ -38,7 +38,10 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(
                         auth -> auth.requestMatchers("/api/auth/login","/api/auth/register","/api/health").permitAll()
-                                .requestMatchers(HttpMethod.GET,"/api/albums","/api/songs").hasAnyRole("USER","ADMIN")
+                                .requestMatchers(HttpMethod.GET,"/api/albums","/api/songs","/api/users/artists").hasAnyRole("USER","ADMIN", "ARTIST")
+                                .requestMatchers(HttpMethod.POST,"/api/albums","/api/songs").hasAnyRole("ADMIN", "ARTIST")
+                                .requestMatchers("/api/transactions/checkout").hasAnyRole("USER", "ADMIN", "ARTIST")
+                                .requestMatchers("/api/transactions/earnings").hasRole("ARTIST")
                                 .anyRequest().hasRole("ADMIN"))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -61,10 +64,18 @@ public class SecurityConfig {
 
     private UrlBasedCorsConfigurationSource corsConfigurationSource(){
         CorsConfiguration config = new CorsConfiguration();
-        config.addAllowedOriginPattern("*");
+        // Explicitly allow both frontend applications
+        config.setAllowedOrigins(List.of(
+            "http://localhost:5173", 
+            "http://localhost:5174",
+            "http://127.0.0.1:5173",
+            "http://127.0.0.1:5174"
+        ));
         config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization","Content-Type"));
+        config.setAllowedHeaders(List.of("Authorization","Content-Type","X-Requested-With","Accept","Origin"));
+        config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
+        config.setMaxAge(3600L);
 
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

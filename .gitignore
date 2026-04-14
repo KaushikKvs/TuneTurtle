@@ -18,3 +18,4 @@ target/
 Thumbs.db
 npm-debug.log*
 yarn-error.log*
+jdk21/

@@ -1,6 +1,54 @@
 @import url("https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap");
 @import "tailwindcss";
 
+[data-theme='dark'] {
+  --bg-base: #0B0B0C;
+  --bg-surface: #121214;
+  --bg-card: #1A1A1D;
+  --bg-hover: #212124;
+  --text-primary: #FFFFFF;
+  --text-secondary: #B3B3B3;
+  --text-meta: #6B6B6B;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --accent: #16a349; /* Premium Green (rgb 22, 163, 73) */
+  --accent-glow: rgba(22, 163, 73, 0.4);
+  --dashboard-accent: #16a349; 
+  --tag-bg: rgba(22, 163, 73, 0.1); 
+  --tag-text: #16a349;
+}
+
+[data-theme='light'] {
+  --bg-base: #F2EBE9; /* Warm Champagne Cream */
+  --bg-surface: #FDFBFB; /* Silky White */
+  --bg-card: #E8DEDC; /* Muted Sand */
+  --bg-hover: #DED1CE;
+  --text-primary: #3D251E; /* Espresso */
+  --text-secondary: #6A4A3A; /* Mocha */
+  --text-meta: #8B6C5C;
+  --border-subtle: rgba(61, 37, 30, 0.08); /* Espresso-tinted borders */
+  --accent: #3D251E; /* Toasted Espresso (rgb 61, 37, 30) for Buttons/Amounts */
+  --accent-glow: rgba(61, 37, 30, 0.2);
+  --dashboard-accent: #3D251E; 
+  --tag-bg: rgba(61, 37, 30, 0.05); 
+  --tag-text: #3D251E;
+}
+
+@keyframes pulse-glow {
+  0% { transform: scale(1); filter: drop-shadow(0 0 0px var(--accent-glow)); }
+  50% { transform: scale(1.05); filter: drop-shadow(0 0 10px var(--accent-glow)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 0px var(--accent-glow)); }
+}
+
+.animate-pulse-slow {
+  animation: pulse-glow 3s infinite ease-in-out;
+}
+
 * {
   font-family: "Urbanist", sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+}
+
+body {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
 }

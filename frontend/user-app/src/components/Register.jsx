@@ -9,16 +9,20 @@ const Register = ({ onSwitchToLogin }) => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [loginMode, setLoginMode] = useState("fan");
+  const [artistName, setArtistName] = useState("");
+  const [genre, setGenre] = useState("");
+  const [bio, setBio] = useState("");
   const { register } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
-    if (!email || !password || !confirmPassword) {
-      setError("Please fill in all fields");
-      toast.error("Please fill in all fields");
-      error;
+    if (!email || !password || !confirmPassword || (loginMode === "artist" && (!artistName || !genre))) {
+      setError("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
+      return;
     }
     if (password !== confirmPassword) {
       setError("Passwords do not match");
@@ -27,7 +31,8 @@ const Register = ({ onSwitchToLogin }) => {
     }
     setLoading(true);
     try {
-      const result = await register(email, password);
+      const role = loginMode === "artist" ? "ARTIST" : "USER";
+      const result = await register(email, password, role, artistName, genre, bio);
       if (result.success) {
         toast.success(result.message);
         onSwitchToLogin();
@@ -69,6 +74,20 @@ const Register = ({ onSwitchToLogin }) => {
                 {error}
               </div>
             )}
+            {/* Toggle Fan/Artist */}
+            <div className="flex gap-2 mb-4">
+              {["fan", "artist"].map(m => (
+                <button
+                  type="button"
+                  key={m}
+                  onClick={() => setLoginMode(m)}
+                  className={`flex-1 py-2 rounded-lg text-sm transition-colors border ${loginMode === m ? "bg-green-900 border-green-500 text-green-300" : "bg-transparent border-gray-700 text-gray-400"}`}
+                >
+                  {m === "fan" ? "Fan / Listener" : "Artist"}
+                </button>
+              ))}
+            </div>
+
             {/* Email Field */}
             <div>
               <label
@@ -89,6 +108,28 @@ const Register = ({ onSwitchToLogin }) => {
                 onChange={(e) => setEmail(e.target.value)}
               />
             </div>
+
+            {/* Artist Fields */}
+            {loginMode === "artist" && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-200 mb-2">Artist Name</label>
+                  <input type="text" required className="block w-full px-4 py-3 border border-gray-600 rounded-lg bg-gray-800/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                    placeholder="Your Stage Name" value={artistName} onChange={e => setArtistName(e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-200 mb-2">Primary Genre</label>
+                  <input type="text" required className="block w-full px-4 py-3 border border-gray-600 rounded-lg bg-gray-800/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                    placeholder="e.g. Synthwave" value={genre} onChange={e => setGenre(e.target.value)} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-200 mb-2">Artist Bio</label>
+                  <textarea className="block w-full px-4 py-3 border border-gray-600 rounded-lg bg-gray-800/50 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500 transition-all"
+                    placeholder="Tell us about your sound..." rows="3" value={bio} onChange={e => setBio(e.target.value)} />
+                </div>
+              </>
+            )}
+
             {/* Password Field */}
             <div>
               <label

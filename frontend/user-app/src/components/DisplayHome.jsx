@@ -18,6 +18,8 @@ const DisplayHome = () => {
               desc={item.desc}
               id={item._id}
               image={item.imageUrl}
+              price={item.price}
+              isFree={item.isFree}
             />
           ))}
         </div>
@@ -33,6 +35,8 @@ const DisplayHome = () => {
               desc={item.desc}
               id={item._id}
               image={item.image}
+              price={item.price}
+              isFree={item.isFree}
             />
           ))}
         </div>
