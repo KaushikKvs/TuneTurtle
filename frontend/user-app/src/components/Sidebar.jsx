@@ -4,9 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { useSearch } from "../context/SearchContext.jsx";
 import { PlayerContext } from "../context/PlayerContext.jsx";
 import { useAuth, API_BASE_URL } from "../context/AuthContext.jsx";
+import { useTheme } from "../context/ThemeContext.jsx";
 import { assets } from "../assets/assets";
 import axios from "axios";
 import toast from "react-hot-toast";
+
 
 const Sidebar = () => {
   const [showSearchInput, setShowSearchInput] = useState(false);
@@ -44,18 +46,33 @@ const Sidebar = () => {
   }, [user]);
 
   const followedArtists = artists.filter(a => mySubscriptions?.includes(a.id));
+  const { isSidebarOpen, toggleSidebar } = useTheme();
 
   return (
-    <div className="w-[25%] h-full p-3 flex flex-col gap-3 text-[var(--text-primary)] hidden lg:flex">
-      <div className="bg-[var(--bg-surface)] px-6 py-6 rounded-2xl flex flex-col gap-6 border border-[var(--border-subtle)] shadow-xl">
+    <div className={`h-full flex flex-col gap-3 pb-28 text-[var(--text-primary)] transition-all duration-500 ease-in-out overflow-y-auto ${isSidebarOpen ? 'w-[25%] opacity-100 p-3 lg:flex hidden' : 'w-0 opacity-0 overflow-hidden m-0 p-0 hidden'}`}>
+      <div className="premium-tracer bg-[var(--bg-surface)] px-6 py-6 rounded-2xl flex flex-col gap-6 shadow-xl">
         <div 
-          onClick={() => navigate("/")}
+          onClick={() => { navigate("/"); toggleSidebar(); }}
           className="flex items-center gap-3 cursor-pointer group mb-2"
         >
-          <div className="p-2 bg-[var(--bg-base)] rounded-xl border border-[var(--border-subtle)] group-hover:scale-110 group-hover:shadow-[0_0_15px_rgba(29,185,84,0.2)] transition-all">
-            <img src={assets.logo} alt="TuneTurtle" className="w-8 h-8 animate-pulse-slow" />
+          <div className="p-2 bg-[var(--bg-base)] rounded-xl border border-[var(--accent)]/30 scale-105 shadow-[0_0_25px_var(--accent-glow)] group-hover:scale-110 group-hover:shadow-[0_0_35px_var(--accent-glow)] transition-all duration-300 animate-float">
+            <div 
+              className="w-8 h-8 animate-pulse-slow"
+              style={{
+                backgroundColor: 'var(--accent)',
+                maskImage: `url(${assets.logo})`,
+                WebkitMaskImage: `url(${assets.logo})`,
+                maskSize: 'contain',
+                WebkitMaskSize: 'contain',
+                maskRepeat: 'no-repeat',
+                WebkitMaskRepeat: 'no-repeat',
+                maskPosition: 'center',
+                WebkitMaskPosition: 'center',
+                filter: 'drop-shadow(0 0 8px var(--accent-glow)) drop-shadow(0 0 20px var(--accent-glow))'
+              }}
+            />
           </div>
-          <p className="text-xl font-black tracking-tighter text-[var(--text-primary)]">TuneTurtle</p>
+          <p className="text-xl font-black tracking-tighter text-[var(--text-primary)] group-hover:text-[var(--accent)] transition-colors">TuneTurtle</p>
         </div>
 
         <div
@@ -96,7 +113,7 @@ const Sidebar = () => {
           )}
         </div>
       </div>
-      <div className="bg-[var(--bg-surface)] flex-1 rounded-2xl flex flex-col border border-[var(--border-subtle)] shadow-xl overflow-hidden">
+      <div className="premium-tracer bg-[var(--bg-surface)] flex-1 min-h-0 rounded-2xl flex flex-col shadow-xl overflow-auto">
         <div className="p-6 flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-base)]/20">
           <div className="flex items-center gap-3">
             <Library className="w-5 h-5 text-[var(--accent)]" />
@@ -116,7 +133,7 @@ const Sidebar = () => {
           {user?.role === 'ARTIST' ? (
             /* Artist Sidebar Content */
             <div className="space-y-4 pt-2">
-                <div className="p-4 bg-[var(--bg-card)] rounded-xl border border-[var(--border-subtle)] space-y-3">
+                <div className="premium-tracer p-4 bg-[var(--bg-card)] rounded-xl space-y-3">
                     <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Management</p>
                     <button 
                         onClick={() => navigate("/dashboard?tab=earnings")} 
@@ -132,7 +149,7 @@ const Sidebar = () => {
                     </button>
                 </div>
 
-                <div className="p-4 bg-[var(--bg-card)] rounded-xl border border-[var(--border-subtle)] space-y-3">
+                <div className="premium-tracer p-4 bg-[var(--bg-card)] rounded-xl space-y-3">
                     <p className="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest">Quick Actions</p>
                     <button 
                         onClick={() => navigate("/dashboard?tab=upload_track")} 

@@ -1,6 +1,6 @@
 import React from "react";
 import { useAuth } from "../context/AuthContext";
-import { LayoutDashboard, Music, FolderHeart, PlusCircle, LogOut, Users } from "lucide-react";
+import { Music, FolderHeart, PlusCircle, LogOut, Users } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { assets } from "../assets/assets";
 
@@ -19,14 +19,32 @@ const Sidebar = () => {
 
     return (
         <div className="w-64 bg-[var(--bg-surface)] border-r border-[var(--border-subtle)] flex flex-col h-full overflow-hidden">
-            <div className="p-6 mb-4">
-                <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate("/")}>
-                    <img src={assets.logo} alt="logo" className="w-9 h-9 animate-pulse-slow" />
-                    <h1 className="text-xl font-extrabold text-[var(--text-primary)] tracking-tighter group-hover:text-[var(--accent)] transition-colors">Admin<span className="text-[var(--accent)]">Panel</span></h1>
+            {/* Logo */}
+            <div className="p-6 mb-2">
+                <div className="premium-tracer bg-[var(--bg-card)] rounded-xl p-4 flex items-center gap-3 cursor-pointer group" onClick={() => navigate("/")}>
+                    <div 
+                        className="w-8 h-8 shrink-0 animate-pulse-slow"
+                        style={{
+                            backgroundColor: 'var(--accent)',
+                            maskImage: `url(${assets.logo})`,
+                            WebkitMaskImage: `url(${assets.logo})`,
+                            maskSize: 'contain',
+                            WebkitMaskSize: 'contain',
+                            maskRepeat: 'no-repeat',
+                            WebkitMaskRepeat: 'no-repeat',
+                            maskPosition: 'center',
+                            WebkitMaskPosition: 'center',
+                            filter: 'drop-shadow(0 0 8px var(--accent-glow))'
+                        }}
+                    />
+                    <h1 className="text-lg font-extrabold text-[var(--text-primary)] tracking-tighter group-hover:text-[var(--accent)] transition-colors">
+                        Admin<span className="text-[var(--accent)]">Panel</span>
+                    </h1>
                 </div>
             </div>
 
-            <nav className="flex-1 px-4 space-y-2">
+            {/* Navigation */}
+            <nav className="flex-1 px-4 space-y-1.5 overflow-y-auto">
                 {menuItems.map((item) => {
                     const Icon = item.icon;
                     const isActive = location.pathname === item.path;
@@ -34,9 +52,9 @@ const Sidebar = () => {
                         <button
                             key={item.path}
                             onClick={() => navigate(item.path)}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all ${
+                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all duration-200 ${
                                 isActive 
-                                ? "bg-[var(--dashboard-accent)] text-[var(--bg-base)] shadow-lg shadow-[var(--accent-glow)] scale-105" 
+                                ? "bg-[var(--accent)] text-[var(--bg-base)] shadow-lg shadow-[var(--accent-glow)]" 
                                 : "text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] hover:text-[var(--text-primary)] border border-transparent hover:border-[var(--border-subtle)]"
                             }`}
                         >
@@ -47,6 +65,7 @@ const Sidebar = () => {
                 })}
             </nav>
 
+            {/* Logout */}
             <div className="p-4 border-t border-[var(--border-subtle)]">
                 <button
                     onClick={logout}

@@ -5,6 +5,7 @@ import { ShoppingCart, Play, Lock } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { loadRazorpayScript } from "../utils/razorpay";
 
 const SongItem = ({ name, image, desc, id, price, isFree, artistId }) => {
   const { playWithId, mySubscriptions } = useContext(PlayerContext);
@@ -22,20 +23,74 @@ const SongItem = ({ name, image, desc, id, price, isFree, artistId }) => {
       return;
     }
     setBuying(true);
+
     try {
-      await axios.post(
-        `${API_BASE_URL}/api/transactions/checkout`,
-        {
+      const res = await loadRazorpayScript();
+      if (!res) {
+        toast.error("Razorpay SDK failed to load. Are you online?");
+        setBuying(false);
+        return;
+      }
+
+      // Step 1: Create Order
+      const transactionDetails = {
           artistId: artistId,
           type: "SONG",
           itemId: id,
           amountPaid: price || 0
-        },
+      };
+
+      const { data: orderData } = await axios.post(
+        `${API_BASE_URL}/api/transactions/create-order`,
+        transactionDetails,
         { headers: getAuthHeaders() }
       );
-      toast.success(`Successfully purchased ${name}!`);
+
+      // Step 2: Open Razorpay Checkout
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID, 
+        amount: price * 100, // paise
+        currency: "INR",
+        name: "TuneTurtle Premium",
+        description: `Purchase License for ${name}`,
+        image: image,
+        order_id: orderData.orderId,
+        handler: async function (response) {
+            try {
+                // Step 3: Verify Payment
+                await axios.post(
+                  `${API_BASE_URL}/api/transactions/verify-payment`,
+                  {
+                    razorpayOrderId: response.razorpay_order_id,
+                    razorpayPaymentId: response.razorpay_payment_id,
+                    razorpaySignature: response.razorpay_signature,
+                    transactionDetails: transactionDetails
+                  },
+                  { headers: getAuthHeaders() }
+                );
+                
+                toast.success(`Successfully purchased ${name}!`);
+                // Reload dashboard/subs effectively (you might want to trigger context refresh here)
+                window.location.reload(); 
+            } catch (err) {
+                toast.error("Payment verification failed. Please contact support.");
+            }
+        },
+        prefill: {
+            name: user?.name || "Fan",
+            email: user?.email || "",
+            contact: "9999999999" // Dummy for now
+        },
+        theme: {
+            color: "#00C950"
+        }
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
+
     } catch (error) {
-      toast.error("Purchase failed: " + (error.response?.data?.message || "Internal Error"));
+      toast.error("Checkout failed: " + (error.response?.data?.message || "Internal Error"));
     }
     setBuying(false);
   };
@@ -43,13 +98,13 @@ const SongItem = ({ name, image, desc, id, price, isFree, artistId }) => {
   return (
     <div 
       onClick={() => playWithId(id)} 
-      className="group relative flex items-center gap-4 p-3 rounded-2xl cursor-pointer hover:bg-[var(--bg-hover)] transition-all duration-500 border border-transparent hover:border-[var(--border-subtle)] hover:shadow-2xl hover:shadow-[var(--accent-glow)]/5"
+      className="premium-tracer group relative flex items-center gap-4 p-3 rounded-2xl cursor-pointer bg-transparent hover:bg-[var(--bg-hover)] transition-all duration-300 ease-in-out hover:shadow-[0_8px_30px_var(--accent-glow)] hover:-translate-y-1 animate-slide-up backdrop-blur-sm"
     >
-      <div className="relative overflow-hidden rounded-xl w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 shadow-lg group-hover:shadow-[var(--accent-glow)]/20 transition-all duration-500">
+      <div className="relative overflow-hidden rounded-xl w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 shadow-sm group-hover:shadow-[0_4px_15px_var(--accent-glow)] transition-all duration-500 ease-out">
         <img
           src={image}
           alt={name}
-          className="w-full h-full object-cover transform group-hover:scale-110 transition-transform duration-700"
+          className="w-full h-full object-cover transform group-hover:scale-110 group-hover:rotate-1 transition-all duration-700"
         />
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
             {hasAccess ? (

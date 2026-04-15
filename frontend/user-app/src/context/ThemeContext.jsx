@@ -3,19 +3,29 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-  const [theme, setTheme] = useState(localStorage.getItem("theme") || "dark");
+  const [theme, setTheme] = useState(localStorage.getItem("theme") || "tune-dark");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", theme);
-    localStorage.setItem("theme", theme);
+    // For backwards compatibility on previous state
+    let safeTheme = theme;
+    if (theme === "dark") safeTheme = "tune-dark";
+    if (theme === "light") safeTheme = "tune-light";
+
+    document.documentElement.setAttribute("data-theme", safeTheme);
+    localStorage.setItem("theme", safeTheme);
   }, [theme]);
 
-  const toggleTheme = () => {
-    setTheme(prev => (prev === "dark" ? "light" : "dark"));
+  const changeTheme = (newTheme) => {
+    setTheme(newTheme);
+  };
+
+  const toggleSidebar = () => {
+    setIsSidebarOpen(!isSidebarOpen);
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, changeTheme, isSidebarOpen, toggleSidebar }}>
       {children}
     </ThemeContext.Provider>
   );

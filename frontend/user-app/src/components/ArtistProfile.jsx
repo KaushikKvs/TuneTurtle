@@ -7,6 +7,7 @@ import { PlayerContext } from "../context/PlayerContext";
 import { useAuth } from "../context/AuthContext";
 import AlbumItem from "./AlbumItem";
 import SongItem from "./SongItem";
+import { loadRazorpayScript } from "../utils/razorpay";
 
 const ArtistProfile = () => {
   const { id } = useParams();
@@ -66,14 +67,61 @@ const ArtistProfile = () => {
     }
     setCheckingOut(true);
     try {
-      await axios.post(`${API_BASE_URL}/api/transactions/checkout`, {
+      const res = await loadRazorpayScript();
+      if (!res) {
+        toast.error("Razorpay SDK failed to load. Are you online?");
+        setCheckingOut(false);
+        return;
+      }
+
+      const transactionDetails = {
         artistId: id,
         type: "SUBSCRIPTION",
         amountPaid: 299.0
-      }, { headers: getAuthHeaders() });
-      
-      toast.success(`Welcome to ${artist?.artistName}'s Inner Circle!`);
-      setIsSubscribed(true);
+      };
+
+      // Step 1
+      const { data: orderData } = await axios.post(
+        `${API_BASE_URL}/api/transactions/create-order`,
+        transactionDetails,
+        { headers: getAuthHeaders() }
+      );
+
+      // Step 2
+      const options = {
+        key: import.meta.env.VITE_RAZORPAY_KEY_ID, 
+        amount: 29900, // paise
+        currency: "INR",
+        name: "TuneTurtle Premium",
+        description: `Inner Circle Access: ${artist?.artistName}`,
+        order_id: orderData.orderId,
+        handler: async function (response) {
+            try {
+                // Step 3
+                await axios.post(
+                  `${API_BASE_URL}/api/transactions/verify-payment`,
+                  {
+                    razorpayOrderId: response.razorpay_order_id,
+                    razorpayPaymentId: response.razorpay_payment_id,
+                    razorpaySignature: response.razorpay_signature,
+                    transactionDetails: transactionDetails
+                  },
+                  { headers: getAuthHeaders() }
+                );
+                
+                toast.success(`Welcome to ${artist?.artistName}'s Inner Circle!`);
+                setIsSubscribed(true);
+            } catch (err) {
+                toast.error("Payment verification failed. Please contact support.");
+            }
+        },
+        prefill: { name: user?.name, email: user?.email, contact: "9999999999" },
+        theme: { color: "#00C950" }
+      };
+
+      const paymentObject = new window.Razorpay(options);
+      paymentObject.open();
+
     } catch (error) {
       toast.error("Checkout failed: " + (error.response?.data?.message || "Internal Server Error"));
     }

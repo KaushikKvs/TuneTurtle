@@ -1,7 +1,16 @@
 @import url("https://fonts.googleapis.com/css2?family=Urbanist:ital,wght@0,100..900;1,100..900&display=swap");
 @import "tailwindcss";
 
-[data-theme='dark'] {
+/* Hide universal scrollbars for premium native feel */
+::-webkit-scrollbar {
+  display: none;
+}
+* {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+:root, [data-theme='tune-dark'] {
   --bg-base: #0B0B0C;
   --bg-surface: #121214;
   --bg-card: #1A1A1D;
@@ -10,14 +19,14 @@
   --text-secondary: #B3B3B3;
   --text-meta: #6B6B6B;
   --border-subtle: rgba(255, 255, 255, 0.08);
-  --accent: #16a349; /* Premium Green (rgb 22, 163, 73) */
-  --accent-glow: rgba(22, 163, 73, 0.4);
-  --dashboard-accent: #16a349; 
-  --tag-bg: rgba(22, 163, 73, 0.1); 
-  --tag-text: #16a349;
+  --accent: #00C950; /* Neon Green */
+  --accent-glow: rgba(0, 201, 80, 0.4);
+  --dashboard-accent: #00C950; 
+  --tag-bg: rgba(0, 201, 80, 0.1); 
+  --tag-text: #00C950;
 }
 
-[data-theme='light'] {
+[data-theme='tune-light'] {
   --bg-base: #F2EBE9; /* Warm Champagne Cream */
   --bg-surface: #FDFBFB; /* Silky White */
   --bg-card: #E8DEDC; /* Muted Sand */
@@ -25,12 +34,60 @@
   --text-primary: #3D251E; /* Espresso */
   --text-secondary: #6A4A3A; /* Mocha */
   --text-meta: #8B6C5C;
-  --border-subtle: rgba(61, 37, 30, 0.08); /* Espresso-tinted borders */
-  --accent: #3D251E; /* Toasted Espresso (rgb 61, 37, 30) for Buttons/Amounts */
+  --border-subtle: rgba(61, 37, 30, 0.08);
+  --accent: #3D251E; /* Toasted Espresso */
   --accent-glow: rgba(61, 37, 30, 0.2);
   --dashboard-accent: #3D251E; 
   --tag-bg: rgba(61, 37, 30, 0.05); 
   --tag-text: #3D251E;
+}
+
+[data-theme='tune-blue'] {
+  --bg-base: #020205; /* Void Black */
+  --bg-surface: rgba(4, 10, 20, 0.95); /* Glass Surface */
+  --bg-card: rgba(8, 15, 28, 0.9);
+  --bg-hover: rgba(0, 229, 255, 0.08); /* Cyberpunk Cyan Hover */
+  --text-primary: #FFFFFF;
+  --text-secondary: #8A9BB5;
+  --text-meta: #4A5A75;
+  --border-subtle: rgba(0, 229, 255, 0.15); /* Sharp HUD Borders */
+  --accent: #00E5FF; /* Searing Neon Cyan */
+  --accent-glow: rgba(0, 229, 255, 0.6);
+  --dashboard-accent: #B026FF; /* Electric Purple */
+  --tag-bg: rgba(0, 229, 255, 0.1); 
+  --tag-text: #00E5FF;
+}
+
+[data-theme='tune-red'] {
+  --bg-base: #050202; /* Extremely Deep Black/Red */
+  --bg-surface: #120909; /* Deep Red Surface */
+  --bg-card: #1C0F0F;
+  --bg-hover: #261616;
+  --text-primary: #FFFFFF;
+  --text-secondary: #FFB3B3; /* Faint Red Tint */
+  --text-meta: #A66A6A;
+  --border-subtle: rgba(255, 58, 57, 0.15); 
+  --accent: #FF3A39; /* The Requested Red */
+  --accent-glow: rgba(255, 58, 57, 0.6);
+  --dashboard-accent: #FF3A39;
+  --tag-bg: rgba(255, 58, 57, 0.1); 
+  --tag-text: #FF3A39;
+}
+
+[data-theme='tune-scarlet'] {
+  --bg-base: #000000; /* Absolute Black Combo */
+  --bg-surface: #0A0A0A; /* Sleek Dark Core */
+  --bg-card: #111111;
+  --bg-hover: rgba(237, 41, 44, 0.1); /* Subtle Scarlet Hover */
+  --text-primary: #FFFFFF;
+  --text-secondary: #A0A0A0;
+  --text-meta: #666666;
+  --border-subtle: rgba(237, 41, 44, 0.2); 
+  --accent: #ED292C; /* Precise Scarlet Target */
+  --accent-glow: rgba(237, 41, 44, 0.65);
+  --dashboard-accent: #ED292C;
+  --tag-bg: rgba(237, 41, 44, 0.15); 
+  --tag-text: #ED292C;
 }
 
 @keyframes pulse-glow {
@@ -39,8 +96,173 @@
   100% { transform: scale(1); filter: drop-shadow(0 0 0px var(--accent-glow)); }
 }
 
+@keyframes slide-up {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@property --border-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+@property --border-angle-reverse {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 360deg;
+}
+
+@keyframes tracer-spin {
+  to {
+    --border-angle: 360deg;
+  }
+}
+
+@keyframes tracer-spin-reverse {
+  to {
+    --border-angle-reverse: 0deg;
+  }
+}
+
+.premium-tracer {
+  position: relative;
+  z-index: 0;
+  --border-angle: 0deg;
+  --border-angle-reverse: 360deg;
+  border-radius: inherit; /* Assumes parent has rounded corners */
+}
+
+/* Shared structural properties for the dual border beams */
+.premium-tracer::before,
+.premium-tracer::after {
+  content: "";
+  position: absolute;
+  border-radius: inherit;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: opacity 0.5s ease, filter 0.5s ease;
+  z-index: 10;
+}
+
+/* Beam 1: Travels Clockwise - Stronger, sharper leading light */
+.premium-tracer::before {
+  inset: 0px; 
+  padding: 1.5px; /* Thinner line */
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent 60%,
+    var(--accent-glow) 95%,
+    var(--accent) 100%
+  );
+  opacity: 0.15;
+  animation: tracer-spin 6s linear infinite;
+}
+
+/* Beam 2: Travels Counter-clockwise - Diffused, softer ambient depth light */
+.premium-tracer::after {
+  inset: -1px; /* Slightly wider spread */
+  padding: 3px; /* Thicker, softer track */
+  background: conic-gradient(
+    from var(--border-angle-reverse),
+    transparent 50%,
+    var(--accent-glow) 90%,
+    var(--accent) 100%
+  );
+  opacity: 0.08; /* Much more subtle */
+  filter: blur(2px); /* Diffused depth */
+  animation: tracer-spin-reverse 8s linear infinite; /* Asynchronous timing */
+}
+
+/* Hover Physics - Soft brightness bump without getting flashy */
+.premium-tracer:hover::before {
+  opacity: 0.85; 
+}
+
+.premium-tracer:hover::after {
+  opacity: 0.4;
+  filter: blur(3px);
+}
+
+/* White variant for pre-auth pages (login/register) */
+.premium-tracer-white {
+  position: relative;
+  z-index: 0;
+  --border-angle: 0deg;
+  --border-angle-reverse: 360deg;
+}
+
+.premium-tracer-white::before,
+.premium-tracer-white::after {
+  content: "";
+  position: absolute;
+  border-radius: inherit;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: opacity 0.5s ease, filter 0.5s ease;
+  z-index: 10;
+}
+
+.premium-tracer-white::before {
+  inset: 0px;
+  padding: 1.5px;
+  background: conic-gradient(
+    from var(--border-angle),
+    transparent 55%,
+    rgba(255, 255, 255, 0.25) 90%,
+    rgba(255, 255, 255, 0.7) 100%
+  );
+  opacity: 0.6;
+  animation: tracer-spin 6s linear infinite;
+}
+
+.premium-tracer-white::after {
+  inset: -1px;
+  padding: 3.5px;
+  background: conic-gradient(
+    from var(--border-angle-reverse),
+    transparent 45%,
+    rgba(255, 255, 255, 0.2) 85%,
+    rgba(255, 255, 255, 0.6) 100%
+  );
+  opacity: 0.35;
+  filter: blur(3px);
+  animation: tracer-spin-reverse 8s linear infinite;
+}
+
+.premium-tracer-white:hover::before {
+  opacity: 1;
+}
+
+.premium-tracer-white:hover::after {
+  opacity: 0.7;
+  filter: blur(4px);
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+  100% { transform: translateY(0px); }
+}
+
 .animate-pulse-slow {
   animation: pulse-glow 3s infinite ease-in-out;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.hover-glow:hover {
+  box-shadow: 0 0 20px var(--accent-glow);
 }
 
 * {
@@ -51,4 +273,13 @@
 body {
   background-color: var(--bg-base);
   color: var(--text-primary);
+}
+
+/* Hide scrollbar for clean horizontal scroll */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }

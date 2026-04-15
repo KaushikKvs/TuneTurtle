@@ -104,6 +104,21 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("userData");
   };
 
+  const updateProfile = async (profileData) => {
+    try {
+      const response = await axios.put(`${API_BASE_URL}/api/users/profile`, profileData, {
+        headers: getAuthHeaders(),
+      });
+      if (response.data.success) {
+        // Technically backend could be modified to return full details, but we only store core info in UserContext.
+        return { success: true, message: response.data.message };
+      }
+      return { success: false, message: response.data.message || "Failed to update profile." };
+    } catch (error) {
+      return { success: false, message: error.response?.data?.message || "Network error during profile update." };
+    }
+  };
+
   const getAuthHeaders = () => {
     return token ? { Authorization: `Bearer ${token}` } : {};
   };
@@ -111,6 +126,7 @@ export const AuthProvider = ({ children }) => {
   const contextValue = {
     register,
     login,
+    updateProfile,
     isAuthenticated,
     loading,
     logout,

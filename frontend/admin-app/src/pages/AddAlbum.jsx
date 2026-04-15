@@ -10,7 +10,7 @@ const AddAlbum = () => {
     const [image, setImage] = useState(null);
     const [name, setName] = useState("");
     const [desc, setDesc] = useState("");
-    const [bgColor, setBgColor] = useState("#1e40af");
+    const [bgColor, setBgColor] = useState("#0B0B0C");
     const [price, setPrice] = useState("");
     const [isFree, setIsFree] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -118,22 +118,7 @@ const AddAlbum = () => {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-6">
-                            <div>
-                                <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-meta)] uppercase tracking-widest mb-3 ml-1">
-                                    <Palette className="w-3 h-3 text-[var(--dashboard-accent)]" /> Theme Color
-                                </label>
-                                <div className="flex items-center gap-3">
-                                    <input 
-                                        onChange={(e) => setBgColor(e.target.value)} 
-                                        value={bgColor} 
-                                        type="color" 
-                                        className="w-12 h-12 bg-transparent border-none cursor-pointer" 
-                                    />
-                                    <span className="text-xs font-mono text-[var(--text-meta)] font-bold">{bgColor.toUpperCase()}</span>
-                                </div>
-                            </div>
-
+                        <div className="grid grid-cols-1 gap-6">
                             <div>
                                 <label className="flex items-center gap-2 text-xs font-bold text-[var(--text-meta)] uppercase tracking-widest mb-3 ml-1">
                                     <DollarSign className="w-3 h-3 text-[var(--dashboard-accent)]" /> Pricing (₹)

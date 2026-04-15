@@ -29,7 +29,7 @@ const PodcastsPlaceholder = () => (
   </div>
 );
 
-const Display = () => {
+const Display = ({ playerVisible, setPlayerVisible }) => {
   const { albumsData } = useContext(PlayerContext);
   const displayRef = useRef();
   const contentRef = useRef();
@@ -42,7 +42,7 @@ const Display = () => {
   const album = isAlbum ? albumsData.find((x) => x._id == albumId) : null;
 
   const { theme } = useTheme();
-  const bgColor = album?.bgColor || (theme === "dark" ? "#121212" : "var(--bg-base)");
+  const bgColor = album?.bgColor || (theme === "tune-dark" ? "#121212" : "var(--bg-base)");
 
   useEffect(() => {
     if (contentRef.current) {
@@ -54,14 +54,10 @@ const Display = () => {
     if (isAlbum) {
       displayRef.current.style.background = `linear-gradient(${bgColor}, var(--bg-base))`;
     } else {
-      // Premium mesh-like gradient for default view
-      const gradient = theme === 'dark' 
-        ? `radial-gradient(at 0% 0%, rgba(22, 163, 74, 0.15) 0px, transparent 50%), 
-           radial-gradient(at 100% 100%, rgba(22, 163, 74, 0.05) 0px, transparent 50%),
-           var(--bg-surface)`
-        : `radial-gradient(at 0% 0%, rgba(22, 163, 74, 0.08) 0px, transparent 50%), 
-           radial-gradient(at 100% 100%, rgba(37, 99, 235, 0.05) 0px, transparent 50%),
-           var(--bg-surface)`;
+      // Dynamic themed mesh-like gradient
+      const gradient = `radial-gradient(at 0% 0%, var(--accent-glow) 0px, transparent 50%), 
+                        radial-gradient(at 100% 100%, var(--accent-glow) 0px, transparent 50%),
+                        var(--bg-surface)`;
       displayRef.current.style.background = gradient;
     }
   }, [isAlbum, bgColor, theme]);
@@ -69,11 +65,11 @@ const Display = () => {
   return (
     <div
       ref={displayRef}
-      className="w-[100%] m-2 bg-[var(--bg-surface)] text-[var(--text-primary)] lg:w-[75%] lg:ml-0 flex flex-col rounded-lg border border-[var(--border-subtle)] overflow-hidden"
+      className="premium-tracer flex-1 m-2 bg-[var(--bg-surface)] text-[var(--text-primary)] lg:ml-0 flex flex-col rounded-lg shadow-xl overflow-hidden transition-all duration-500 ease-in-out"
     >
       {/* Sticky Navbar */}
       <div className="sticky top-0 z-10 bg-[var(--bg-surface)]/95 backdrop-blur-md border-b border-[var(--border-subtle)] px-6 pt-4 pb-2">
-        <Navbar />
+        <Navbar playerVisible={playerVisible} setPlayerVisible={setPlayerVisible} />
       </div>
       {/* Scrollable Content */}
       <div ref={contentRef} className="flex-1 px-6 pb-4 overflow-auto">

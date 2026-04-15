@@ -60,6 +60,22 @@ public class UserService {
         return userRepository.findByRole(User.Role.ARTIST);
     }
 
+    public UserResponse updateUserProfile(String email, com.tuneturtle.music.auth.dto.ProfileUpdateRequest request) {
+        User user = findByEmail(email);
+        
+        if (request.getArtistName() != null) user.setArtistName(request.getArtistName());
+        if (request.getGenre() != null) user.setGenre(request.getGenre());
+        if (request.getBio() != null) user.setBio(request.getBio());
+
+        userRepository.save(user);
+
+        return UserResponse.builder()
+                .id(user.getId())
+                .email(user.getEmail())
+                .role(UserResponse.Role.valueOf(user.getRole().name()))
+                .build();
+    }
+
     public void deleteUser(String id) {
         userRepository.deleteById(id);
     }

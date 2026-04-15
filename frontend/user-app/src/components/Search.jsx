@@ -60,7 +60,7 @@ const Search = () => {
             <h2 className="text 2xl font-bold text-white">Songs</h2>
             <span className="text-gray-400">{songs.length}</span>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 gap-4">
             {songs.map((song) => (
               <SongItem
                 key={song._id}

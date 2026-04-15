@@ -14,6 +14,10 @@ export const PlayerContextProvider = ({ children }) => {
   // Songs playing bar states
   const [track, setTrack] = useState(songsData[0]);
   const [playStatus, setPlayStatus] = useState(false);
+  const [volume, setVolume] = useState(1);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isShuffled, setIsShuffled] = useState(false);
+  const [repeatMode, setRepeatMode] = useState('off'); // 'off' | 'all' | 'one'
   const [time, setTime] = useState({
     currentTime: {
       second: 0,
@@ -27,6 +31,7 @@ export const PlayerContextProvider = ({ children }) => {
   const audioRef = useRef();
   const seekBg = useRef();
   const seekBar = useRef();
+  const prevVolume = useRef(1);
 
   const play = () => {
     audioRef.current.play();
@@ -75,20 +80,70 @@ export const PlayerContextProvider = ({ children }) => {
     }
   };
 
-  const next = async () => {
+  const getNextTrack = () => {
     const currentIndex = songsData.findIndex(item => item.id === track?.id || item._id === track?._id);
-    if (currentIndex < songsData.length - 1 && currentIndex !== -1) {
-      const nextItem = songsData[currentIndex + 1];
-      if (!checkAuthorization(nextItem)) {
-        toast.error("Next track is premium. Subscribe to listen.", { style: { background: '#333', color: '#fff' }});
-        return;
-      }
-      setTrack(nextItem);
-      setTimeout(() => {
-        audioRef.current?.play();
-        setPlayStatus(true);
-      }, 50);
+    if (isShuffled) {
+      // Pick a random track that isn't the current one
+      const available = songsData.filter((_, i) => i !== currentIndex);
+      if (available.length === 0) return null;
+      return available[Math.floor(Math.random() * available.length)];
     }
+    if (currentIndex < songsData.length - 1 && currentIndex !== -1) {
+      return songsData[currentIndex + 1];
+    }
+    // If at last track and repeat-all, loop to first
+    if (repeatMode === 'all' && songsData.length > 0) {
+      return songsData[0];
+    }
+    return null;
+  };
+
+  const next = async () => {
+    const nextItem = getNextTrack();
+    if (!nextItem) return;
+    if (!checkAuthorization(nextItem)) {
+      toast.error("Next track is premium. Subscribe to listen.", { style: { background: '#333', color: '#fff' }});
+      return;
+    }
+    setTrack(nextItem);
+    setTimeout(() => {
+      audioRef.current?.play();
+      setPlayStatus(true);
+    }, 50);
+  };
+
+  // Volume controls
+  const changeVolume = (val) => {
+    const v = Math.max(0, Math.min(1, val));
+    setVolume(v);
+    if (audioRef.current) audioRef.current.volume = v;
+    if (v > 0) setIsMuted(false);
+  };
+
+  const toggleMute = () => {
+    if (isMuted) {
+      // Unmute: restore previous volume
+      const restored = prevVolume.current || 0.5;
+      setVolume(restored);
+      if (audioRef.current) audioRef.current.volume = restored;
+      setIsMuted(false);
+    } else {
+      // Mute: save current volume and set to 0
+      prevVolume.current = volume;
+      setVolume(0);
+      if (audioRef.current) audioRef.current.volume = 0;
+      setIsMuted(true);
+    }
+  };
+
+  const toggleShuffle = () => setIsShuffled(prev => !prev);
+
+  const toggleRepeat = () => {
+    setRepeatMode(prev => {
+      if (prev === 'off') return 'all';
+      if (prev === 'all') return 'one';
+      return 'off';
+    });
   };
   const seekSong = async (e) => {
     audioRef.current.currentTime =
@@ -145,6 +200,15 @@ export const PlayerContextProvider = ({ children }) => {
     previous,
     next,
     seekSong,
+    volume,
+    changeVolume,
+    isMuted,
+    toggleMute,
+    isShuffled,
+    toggleShuffle,
+    repeatMode,
+    toggleRepeat,
+    mySubscriptions,
   };
 
   const getSubscriptionsData = async () => {
@@ -195,17 +259,31 @@ export const PlayerContextProvider = ({ children }) => {
       }
     };
 
+    // Auto-advance when song ends
+    const handleEnded = () => {
+      if (repeatMode === 'one') {
+        audio.currentTime = 0;
+        audio.play();
+      } else {
+        next();
+      }
+    };
+
     //add event listeners
     audio.addEventListener("timeupdate", updateSeekBar);
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("ended", handleEnded);
+
+    // Sync volume to audio element
+    audio.volume = volume;
 
     //cleanup function
-
     return () => {
       audio.removeEventListener("timeupdate", updateSeekBar);
       audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("ended", handleEnded);
     };
-  }, [track]);
+  }, [track, repeatMode, isShuffled, volume]);
   return (
     <PlayerContext.Provider value={contextValue}>
       {children}

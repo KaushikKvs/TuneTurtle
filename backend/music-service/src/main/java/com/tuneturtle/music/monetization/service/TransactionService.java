@@ -13,6 +13,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.razorpay.Order;
+import com.razorpay.RazorpayClient;
+import com.razorpay.Utils;
+import org.json.JSONObject;
+import org.springframework.beans.factory.annotation.Value;
+import com.tuneturtle.music.monetization.dto.PaymentVerificationRequest;
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import java.nio.charset.StandardCharsets;
+
 @Service
 @RequiredArgsConstructor
 public class TransactionService {
@@ -20,9 +30,56 @@ public class TransactionService {
     private final TransactionRepository transactionRepository;
     private final UserRepository userRepository;
     
+    @Value("${razorpay.key.id}")
+    private String razorpayKeyId;
+
+    @Value("${razorpay.key.secret}")
+    private String razorpaySecret;
+
     private static final double PLATFORM_FEE_PERCENTAGE = 0.15; // 15%
 
-    public Transaction processCheckout(TransactionRequest request) {
+    // 1. Create Order inside Razorpay
+    public String createRazorpayOrder(TransactionRequest request) throws Exception {
+        RazorpayClient client = new RazorpayClient(razorpayKeyId, razorpaySecret);
+
+        JSONObject orderRequest = new JSONObject();
+        // Razorpay accepts amount in paise (1 INR = 100 paise)
+        orderRequest.put("amount", (int) (request.getAmountPaid() * 100));
+        orderRequest.put("currency", "INR");
+        orderRequest.put("receipt", "txn_" + System.currentTimeMillis());
+
+        Order order = client.orders.create(orderRequest);
+        return order.get("id");
+    }
+
+    // 2. Verify Signature and Save Transaction
+    public Transaction verifyPayment(PaymentVerificationRequest request) throws Exception {
+        String generatedSignature = calculateRFC2104HMAC(
+                request.getRazorpayOrderId() + "|" + request.getRazorpayPaymentId(),
+                razorpaySecret
+        );
+
+        if (!generatedSignature.equals(request.getRazorpaySignature())) {
+            throw new RuntimeException("Payment verification failed: Invalid signature");
+        }
+
+        return processCheckout(request.getTransactionDetails());
+    }
+
+    private String calculateRFC2104HMAC(String data, String secret) throws Exception {
+        SecretKeySpec signingKey = new SecretKeySpec(secret.getBytes(StandardCharsets.UTF_8), "HmacSHA256");
+        Mac mac = Mac.getInstance("HmacSHA256");
+        mac.init(signingKey);
+        byte[] rawHmac = mac.doFinal(data.getBytes(StandardCharsets.UTF_8));
+        StringBuilder result = new StringBuilder();
+        for (byte b : rawHmac) {
+            result.append(String.format("%02x", b));
+        }
+        return result.toString();
+    }
+
+    // Process actual DB save after verification (was previously step 1)
+    private Transaction processCheckout(TransactionRequest request) {
         String fanEmail = SecurityContextHolder.getContext().getAuthentication().getName();
         User fan = userRepository.findByEmail(fanEmail).orElseThrow(() -> new RuntimeException("Fan not found"));
 

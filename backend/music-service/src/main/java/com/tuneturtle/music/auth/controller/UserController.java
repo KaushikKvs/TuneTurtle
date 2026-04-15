@@ -35,6 +35,20 @@ public class UserController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+    @PutMapping("/profile")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN', 'ARTIST')")
+    public ResponseEntity<?> updateProfile(@RequestBody com.tuneturtle.music.auth.dto.ProfileUpdateRequest request, java.security.Principal principal) {
+        try {
+            if (principal == null) {
+                return ResponseEntity.status(401).body("Unauthorized");
+            }
+            // Principal mapped to the authenticated user's email via UserDetailsService and JWT filter
+            var updatedUser = userService.updateUserProfile(principal.getName(), request);
+            return ResponseEntity.ok(java.util.Map.of("success", true, "message", "Profile updated successfully", "user", updatedUser));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
