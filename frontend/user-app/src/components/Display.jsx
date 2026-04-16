@@ -8,6 +8,8 @@ import Dashboard from "./Dashboard";
 import ArtistsDirectory from "./ArtistsDirectory";
 import ArtistProfile from "./ArtistProfile";
 import MusicLibrary from "./MusicLibrary";
+import CartPage from "./CartPage";
+import LikedContent from "./LikedContent";
 import { PlayerContext } from "../context/PlayerContext";
 import { useTheme } from "../context/ThemeContext";
 import { Disc } from "lucide-react";
@@ -72,7 +74,7 @@ const Display = ({ playerVisible, setPlayerVisible }) => {
         <Navbar playerVisible={playerVisible} setPlayerVisible={setPlayerVisible} />
       </div>
       {/* Scrollable Content */}
-      <div ref={contentRef} className="flex-1 px-6 pb-4 overflow-auto">
+      <div ref={contentRef} className="flex-1 px-6 pb-32 overflow-y-auto min-h-0 custom-scrollbar">
         <Routes>
           <Route path="/" element={<DisplayHome />} />
           <Route
@@ -86,7 +88,9 @@ const Display = ({ playerVisible, setPlayerVisible }) => {
           <Route path="/artists" element={<ArtistsDirectory />} />
           <Route path="/artist/:id" element={<ArtistProfile />} />
           <Route path="/music" element={<MusicLibrary />} />
+          <Route path="/cart" element={<CartPage />} />
           <Route path="/podcasts" element={<PodcastsPlaceholder />} />
+          <Route path="/liked" element={<LikedContent />} />
         </Routes>
       </div>
     </div>

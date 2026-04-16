@@ -37,52 +37,46 @@ public class SecurityConfig {
         http.cors(Customizer.withDefaults())
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(
-                        auth -> auth.requestMatchers("/api/auth/login","/api/auth/register","/api/health").permitAll()
-                                .requestMatchers(HttpMethod.GET,"/api/albums","/api/songs","/api/users/artists").hasAnyRole("USER","ADMIN", "ARTIST")
-                                .requestMatchers(HttpMethod.POST,"/api/albums","/api/songs").hasAnyRole("ADMIN", "ARTIST")
+                        auth -> auth.requestMatchers("/api/auth/login", "/api/auth/register", "/api/health").permitAll()
+                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                // Allow public listing of content
+                                .requestMatchers(HttpMethod.GET, "/api/albums", "/api/songs", "/api/users/artists").permitAll()
+                                // Protect modifications
+                                .requestMatchers(HttpMethod.POST, "/api/albums", "/api/songs").hasAnyRole("ADMIN", "ARTIST")
                                 .requestMatchers(HttpMethod.PUT, "/api/users/profile").hasAnyRole("USER", "ADMIN", "ARTIST")
-                                .requestMatchers("/api/transactions/checkout").hasAnyRole("USER", "ADMIN", "ARTIST")
+                                // Transaction endpoints - broader wildcarding
+                                .requestMatchers(HttpMethod.POST, "/api/transactions/**").hasAnyRole("USER", "ADMIN", "ARTIST")
+                                .requestMatchers(HttpMethod.GET, "/api/transactions/my-subscriptions", "/api/transactions/my-purchased-songs", "/api/transactions/ownership").hasAnyRole("USER", "ADMIN", "ARTIST")
+                                .requestMatchers(HttpMethod.GET, "/api/access/**").hasAnyRole("USER", "ADMIN", "ARTIST")
                                 .requestMatchers("/api/transactions/earnings").hasRole("ARTIST")
-                                .anyRequest().hasRole("ADMIN"))
+                                // Relax catch-all to authenticated users
+                                .anyRequest().authenticated())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
-//        http.cors(Customizer.withDefaults())
-//                .csrf(AbstractHttpConfigurer::disable)
-//                .authorizeHttpRequests(
-//                        auth -> auth.requestMatchers("/api/auth/login","/api/auth/register","/api/health").permitAll()
-//                                .anyRequest().authenticated()
-//                ).sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-//                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
-
     @Bean
-    public CorsFilter corsFilter(){
-        return new CorsFilter(corsConfigurationSource());
-    }
-
-    private UrlBasedCorsConfigurationSource corsConfigurationSource(){
+    public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        // Explicitly allow both frontend applications
-        config.setAllowedOrigins(List.of(
-            "http://localhost:5173", 
-            "http://localhost:5174",
-            "http://127.0.0.1:5173",
-            "http://127.0.0.1:5174"
+        config.setAllowedOriginPatterns(List.of(
+            "http://localhost:*",
+            "http://127.0.0.1:*",
+            "https://*.antigravity.ai",
+            "https://antigravity.ai"
         ));
-        config.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
-        config.setAllowedHeaders(List.of("Authorization","Content-Type","X-Requested-With","Accept","Origin"));
+        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        config.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin"));
         config.setExposedHeaders(List.of("Authorization"));
         config.setAllowCredentials(true);
         config.setMaxAge(3600L);
 
-
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**",config);
+        source.registerCorsConfiguration("/**", config);
         return source;
     }
+
 
     @Bean
     public PasswordEncoder passwordEncoder(){

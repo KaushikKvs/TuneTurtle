@@ -115,6 +115,7 @@ const MusicLibrary = () => {
                   image={item.image} 
                   price={item.price} 
                   isFree={item.isFree}
+                  artistId={item.artistId}
                 />
               ))}
             </div>

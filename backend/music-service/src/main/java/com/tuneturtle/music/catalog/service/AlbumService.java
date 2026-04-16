@@ -15,6 +15,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import java.util.List;
 import java.util.Map;
 
@@ -27,6 +31,9 @@ public class AlbumService {
 
     @Autowired
     UserRepository userRepository;
+    
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
     private final Cloudinary cloudinary;
 
@@ -67,6 +74,21 @@ public class AlbumService {
 
         albumRepository.delete(existingAlbum);
         return true;
+    }
+
+    public Album toggleLikeAlbum(String id, String userId) {
+        Album album = albumRepository.findById(id).orElseThrow(() -> new RuntimeException("Album Not Found"));
+        
+        Query query = new Query(Criteria.where("id").is(id));
+        Update update = new Update();
+        
+        if (album.getLikedBy() != null && album.getLikedBy().contains(userId)) {
+            update.pull("likedBy", userId);
+        } else {
+            update.addToSet("likedBy", userId);
+        }
+        
+        return mongoTemplate.findAndModify(query, update, Album.class);
     }
 
 

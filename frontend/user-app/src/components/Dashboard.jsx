@@ -25,6 +25,7 @@ const Dashboard = () => {
   const [imageFile, setImageFile] = useState(null);
   const [audioFile, setAudioFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [myAlbums, setMyAlbums] = useState([]);
   const [mySongs, setMySongs] = useState([]);
 
@@ -90,9 +91,14 @@ const Dashboard = () => {
     formData.append("file", imageFile);
 
     setLoading(true);
+    setUploadProgress(0);
     try {
       await axios.post(`${API_BASE_URL}/api/albums`, formData, {
-        headers: { ...getAuthHeaders(), "Content-Type": "multipart/form-data" }
+        headers: { ...getAuthHeaders(), "Content-Type": "multipart/form-data" },
+        onUploadProgress: (progressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          setUploadProgress(percentCompleted);
+        }
       });
       toast.success("Album successfully uploaded!");
       setUploadForm({ name: "", desc: "", bgColor: "#121212", price: "", isFree: false });
@@ -102,6 +108,7 @@ const Dashboard = () => {
       toast.error("Upload failed: " + (error.response?.data?.message || error.message));
     }
     setLoading(false);
+    setUploadProgress(0);
   };
 
   const handleTrackUpload = async (e) => {
@@ -117,9 +124,14 @@ const Dashboard = () => {
     formData.append("audio", audioFile);
 
     setLoading(true);
+    setUploadProgress(0);
     try {
       await axios.post(`${API_BASE_URL}/api/songs`, formData, {
-        headers: { ...getAuthHeaders(), "Content-Type": "multipart/form-data" }
+        headers: { ...getAuthHeaders(), "Content-Type": "multipart/form-data" },
+        onUploadProgress: (progressEvent) => {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(percentCompleted);
+        }
       });
       toast.success("Track successfully uploaded!");
       setTrackForm({ name: "", desc: "", album: "", price: "", isFree: false });
@@ -129,6 +141,7 @@ const Dashboard = () => {
       toast.error("Upload failed: " + (error.response?.data?.message || error.message));
     }
     setLoading(false);
+    setUploadProgress(0);
   };
 
   const handleDeleteSong = async (id) => {
@@ -239,8 +252,16 @@ const Dashboard = () => {
                   onChange={e => setImageFile(e.target.files[0])} 
                 />
               </div>
-              <button disabled={loading} type="submit" className="mt-6 px-10 py-3 bg-[var(--dashboard-accent)] text-[var(--bg-base)] font-bold rounded-full hover:scale-105 transition-all shadow-xl shadow-[var(--accent-glow)] disabled:opacity-50">
-                {loading ? "Publishing..." : "Publish Release"}
+              <button disabled={loading} type="submit" className="relative mt-6 px-10 py-3 bg-[var(--dashboard-accent)] text-[var(--bg-base)] font-bold rounded-full hover:scale-105 transition-all shadow-xl shadow-[var(--accent-glow)] disabled:opacity-50 overflow-hidden">
+                <span className="relative z-10">
+                    {loading ? (uploadProgress > 0 ? `Uploading ${uploadProgress}%` : "Publishing...") : "Publish Release"}
+                </span>
+                {loading && (
+                    <div 
+                        className="absolute top-0 left-0 h-full bg-white/20 transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                    />
+                )}
               </button>
             </form>
           )}
@@ -327,8 +348,16 @@ const Dashboard = () => {
                   </div>
               </div>
 
-              <button disabled={loading || myAlbums.length === 0} type="submit" className="mt-6 w-full px-6 py-4 bg-[var(--dashboard-accent)] text-[var(--bg-base)] font-bold rounded-full hover:scale-[1.02] transition-all shadow-xl shadow-[var(--accent-glow)] disabled:opacity-50">
-                {loading ? "Processing High-Quality Upload..." : "Upload Track to Marketplace"}
+              <button disabled={loading || myAlbums.length === 0} type="submit" className="relative mt-6 w-full px-6 py-4 bg-[var(--dashboard-accent)] text-[var(--bg-base)] font-bold rounded-full hover:scale-[1.02] transition-all shadow-xl shadow-[var(--accent-glow)] disabled:opacity-50 overflow-hidden">
+                <span className="relative z-10">
+                    {loading ? (uploadProgress > 0 ? `Uploading Track: ${uploadProgress}%` : "Processing High-Quality Upload...") : "Upload Track to Marketplace"}
+                </span>
+                {loading && (
+                    <div 
+                        className="absolute top-0 left-0 h-full bg-white/20 transition-all duration-300"
+                        style={{ width: `${uploadProgress}%` }}
+                    />
+                )}
               </button>
             </form>
           )}

@@ -4,6 +4,8 @@ package com.tuneturtle.music.catalog.document;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import java.util.HashSet;
+import java.util.Set;
 
 @Document(collection = "songs")
 public class Song {
@@ -20,11 +22,13 @@ public class Song {
     private String artistId;
     private Double price;
     private Boolean isFree;
+    private Set<String> likedBy = new HashSet<>();
     private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
 
     public Song() {}
-    public Song(String id, String name, String desc, String album, String image, String file, String duration, String artistId, Double price, Boolean isFree) {
+    public Song(String id, String name, String desc, String album, String image, String file, String duration, String artistId, Double price, Boolean isFree, Set<String> likedBy) {
         this.id = id; this.name = name; this.desc = desc; this.album = album; this.image = image; this.file = file; this.duration = duration; this.artistId = artistId; this.price = price; this.isFree = isFree;
+        this.likedBy = likedBy != null ? likedBy : new HashSet<>();
     }
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -46,12 +50,14 @@ public class Song {
     public void setPrice(Double price) { this.price = price; }
     public Boolean getIsFree() { return isFree; }
     public void setIsFree(Boolean isFree) { this.isFree = isFree; }
+    public Set<String> getLikedBy() { return likedBy; }
+    public void setLikedBy(Set<String> likedBy) { this.likedBy = likedBy; }
     public java.time.LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(java.time.LocalDateTime createdAt) { this.createdAt = createdAt; }
 
     public static SongBuilder builder() { return new SongBuilder(); }
     public static class SongBuilder {
-        private String id; private String name; private String desc; private String album; private String image; private String file; private String duration; private String artistId; private Double price; private Boolean isFree; private java.time.LocalDateTime createdAt;
+        private String id; private String name; private String desc; private String album; private String image; private String file; private String duration; private String artistId; private Double price; private Boolean isFree; private java.time.LocalDateTime createdAt; private Set<String> likedBy;
         public SongBuilder id(String id) { this.id = id; return this; }
         public SongBuilder name(String name) { this.name = name; return this; }
         public SongBuilder desc(String desc) { this.desc = desc; return this; }
@@ -63,6 +69,7 @@ public class Song {
         public SongBuilder price(Double price) { this.price = price; return this; }
         public SongBuilder isFree(Boolean isFree) { this.isFree = isFree; return this; }
         public SongBuilder createdAt(java.time.LocalDateTime createdAt) { this.createdAt = createdAt; return this; }
-        public Song build() { return new Song(id, name, desc, album, image, file, duration, artistId, price, isFree); }
+        public SongBuilder likedBy(Set<String> likedBy) { this.likedBy = likedBy; return this; }
+        public Song build() { return new Song(id, name, desc, album, image, file, duration, artistId, price, isFree, likedBy); }
     }
 }

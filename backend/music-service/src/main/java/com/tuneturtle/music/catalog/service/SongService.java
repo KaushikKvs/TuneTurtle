@@ -15,6 +15,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
 import java.util.Map;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 
 @Service
 @RequiredArgsConstructor
@@ -23,6 +27,7 @@ public class SongService {
     private final SongRepository songRepository;
     private final UserRepository userRepository;
     private final Cloudinary cloudinary;
+    private final MongoTemplate mongoTemplate;
 
     public Song addSong(SongRequest request) throws IOException {
 
@@ -82,5 +87,20 @@ public class SongService {
         int seconds = (int)(durationInSeconds % 60);
 
         return String.format("%d:%02d",minutes,seconds);
+    }
+
+    public Song toggleLikeSong(String id, String userId) {
+        Song song = songRepository.findById(id).orElseThrow(() -> new RuntimeException("Song Not Found"));
+        
+        Query query = new Query(Criteria.where("id").is(id));
+        Update update = new Update();
+        
+        if (song.getLikedBy() != null && song.getLikedBy().contains(userId)) {
+            update.pull("likedBy", userId);
+        } else {
+            update.addToSet("likedBy", userId);
+        }
+        
+        return mongoTemplate.findAndModify(query, update, Song.class);
     }
 }

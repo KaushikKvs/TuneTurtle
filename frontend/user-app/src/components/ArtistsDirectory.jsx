@@ -18,7 +18,9 @@ const ArtistsDirectory = () => {
           headers: getAuthHeaders()
         });
         if (Array.isArray(data)) {
-          setArtists(data);
+          // Filter out the logged-in artist themselves
+          const filtered = data.filter(artist => String(artist.id).trim() !== String(user?.id).trim());
+          setArtists(filtered);
         }
       } catch (error) {
         console.error("Failed to fetch artists", error);

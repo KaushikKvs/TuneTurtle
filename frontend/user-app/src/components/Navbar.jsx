@@ -1,10 +1,11 @@
-import { ChevronLeft, ChevronRight, LogOut, Settings, Palette, Check, Menu, User, X } from "lucide-react";
-import React, { useState, useRef, useEffect } from "react";
+import { ChevronLeft, ChevronRight, LogOut, Settings, Palette, Check, Menu, User, X, ShoppingCart } from "lucide-react";
+import React, { useState, useRef, useEffect, useContext } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useTheme } from "../context/ThemeContext";
 import ProfileModal from "./ProfileModal";
 import { assets } from "../assets/assets";
+import { PlayerContext } from "../context/PlayerContext";
 
 const themes = [
   { id: "tune-dark", label: "Midnight Green", color: "#00C950" },
@@ -12,10 +13,12 @@ const themes = [
   { id: "tune-scarlet", label: "Blood Scarlet", color: "#ED292C" },
   { id: "tune-light", label: "Champagne Brown", color: "#3D251E" },
   { id: "tune-blue", label: "Cyberpunk", color: "#00E5FF" },
+  { id: "tune-solo", label: "Solo Leveling", color: "#7C3AED" },
 ];
 
 const Navbar = ({ playerVisible, setPlayerVisible }) => {
   const { user, logout } = useAuth();
+  const { cartItems } = useContext(PlayerContext);
   const navigate = useNavigate();
   const location = useLocation();
   const { theme, changeTheme, isSidebarOpen, toggleSidebar } = useTheme();
@@ -82,19 +85,17 @@ const Navbar = ({ playerVisible, setPlayerVisible }) => {
           </div>
         </div>
         
-        {user?.role !== 'ARTIST' && (
-          <div className="flex items-center gap-4">
-            {menuItems.map((item) => (
-              <p 
-                key={item.path}
-                onClick={() => navigate(item.path)}
-                className={getTabClass(item.path)}
-              >
-                {item.label}
-              </p>
-            ))}
-          </div>
-        )}
+        <div className="flex items-center gap-4">
+          {menuItems.map((item) => (
+            <p 
+              key={item.path}
+              onClick={() => navigate(item.path)}
+              className={getTabClass(item.path)}
+            >
+              {item.label}
+            </p>
+          ))}
+        </div>
 
         {/* Central TuneTurtle Logo — Click to toggle Player */}
         {user?.role === 'ARTIST' && (
@@ -122,6 +123,21 @@ const Navbar = ({ playerVisible, setPlayerVisible }) => {
         )}
 
         <div className="flex items-center gap-4">
+          {user?.role !== "ADMIN" && (
+            <button
+              onClick={() => navigate("/cart")}
+              className="relative bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-subtle)] px-4 py-2 rounded-full text-[13px] font-bold hover:bg-[var(--bg-hover)] transition-all flex items-center gap-2"
+            >
+              <ShoppingCart className="w-4 h-4" />
+              Cart
+              {cartItems.length > 0 && (
+                <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full text-[10px] font-black bg-[var(--accent)] text-[var(--bg-base)] flex items-center justify-center">
+                  {cartItems.length}
+                </span>
+              )}
+            </button>
+          )}
+
           {user?.role === "ARTIST" && (
             <button
               onClick={() => navigate("/dashboard")}

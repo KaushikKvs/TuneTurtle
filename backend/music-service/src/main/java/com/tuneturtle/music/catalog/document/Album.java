@@ -3,6 +3,8 @@ package com.tuneturtle.music.catalog.document;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import java.util.HashSet;
+import java.util.Set;
 
 @Document(collection = "albums")
 public class Album {
@@ -16,10 +18,12 @@ public class Album {
     private String artistId;
     private Double price;
     private Boolean isFree;
+    private Set<String> likedBy = new HashSet<>();
 
     public Album() {}
-    public Album(String id, String name, String desc, String bgColor, String imageUrl, String artistId, Double price, Boolean isFree) {
+    public Album(String id, String name, String desc, String bgColor, String imageUrl, String artistId, Double price, Boolean isFree, Set<String> likedBy) {
         this.id = id; this.name = name; this.desc = desc; this.bgColor = bgColor; this.imageUrl = imageUrl; this.artistId = artistId; this.price = price; this.isFree = isFree;
+        this.likedBy = likedBy != null ? likedBy : new HashSet<>();
     }
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
@@ -37,11 +41,14 @@ public class Album {
     public void setPrice(Double price) { this.price = price; }
     public Boolean getIsFree() { return isFree; }
     public void setIsFree(Boolean isFree) { this.isFree = isFree; }
+    public Set<String> getLikedBy() { return likedBy; }
+    public void setLikedBy(Set<String> likedBy) { this.likedBy = likedBy; }
+    public Integer getLikesCount() { return likedBy != null ? likedBy.size() : 0; }
 
     public static AlbumBuilder builder() { return new AlbumBuilder(); }
 
     public static class AlbumBuilder {
-        private String id; private String name; private String desc; private String bgColor; private String imageUrl; private String artistId; private Double price; private Boolean isFree;
+        private String id; private String name; private String desc; private String bgColor; private String imageUrl; private String artistId; private Double price; private Boolean isFree; private Set<String> likedBy;
         public AlbumBuilder id(String id) { this.id = id; return this; }
         public AlbumBuilder name(String name) { this.name = name; return this; }
         public AlbumBuilder desc(String desc) { this.desc = desc; return this; }
@@ -50,6 +57,7 @@ public class Album {
         public AlbumBuilder artistId(String artistId) { this.artistId = artistId; return this; }
         public AlbumBuilder price(Double price) { this.price = price; return this; }
         public AlbumBuilder isFree(Boolean isFree) { this.isFree = isFree; return this; }
-        public Album build() { return new Album(id, name, desc, bgColor, imageUrl, artistId, price, isFree); }
+        public AlbumBuilder likedBy(Set<String> likedBy) { this.likedBy = likedBy; return this; }
+        public Album build() { return new Album(id, name, desc, bgColor, imageUrl, artistId, price, isFree, likedBy); }
     }
 }

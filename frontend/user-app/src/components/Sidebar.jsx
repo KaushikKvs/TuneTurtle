@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from "react";
-import { ArrowRight, Home, Library, Plus, Search, X, DollarSign, ListMusic, Trash2 } from "lucide-react";
+import { ArrowRight, Home, Library, Plus, Search, X, DollarSign, ListMusic, Trash2, Heart } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useSearch } from "../context/SearchContext.jsx";
 import { PlayerContext } from "../context/PlayerContext.jsx";
@@ -37,7 +37,8 @@ const Sidebar = () => {
         const { data } = await axios.get(`${API_BASE_URL}/api/users/artists`, {
           headers: getAuthHeaders()
         });
-        setArtists(data);
+        const filtered = data.filter(artist => String(artist.id).trim() !== String(user?.id).trim());
+        setArtists(filtered);
       } catch (error) {
         console.error("Failed to fetch artists", error);
       }
@@ -111,6 +112,14 @@ const Sidebar = () => {
               </button>
             </div>
           )}
+        </div>
+
+        <div
+          onClick={() => navigate("/liked")}
+          className="flex items-center gap-4 cursor-pointer text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-all group"
+        >
+          <Heart className="w-5 h-5 group-hover:scale-110 group-hover:fill-[var(--accent)] group-hover:text-[var(--accent)] transition-all" />
+          <p className="font-bold text-sm">Liked Content</p>
         </div>
       </div>
       <div className="premium-tracer bg-[var(--bg-surface)] flex-1 min-h-0 rounded-2xl flex flex-col shadow-xl overflow-auto">

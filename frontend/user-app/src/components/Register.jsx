@@ -65,6 +65,15 @@ const Starfield = () => {
   return <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none z-0" />;
 };
 
+const InputField = ({ field, icon: Icon, iconTop, focusedField, children }) => (
+  <div className={`relative rounded-xl transition-all duration-300 ${focusedField === field ? 'shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_0_25px_rgba(255,255,255,0.03)]' : ''}`}>
+    <Icon className={`absolute left-4 ${iconTop ? 'top-4' : 'top-1/2 -translate-y-1/2'} w-4 h-4 transition-colors duration-300 ${focusedField === field ? 'text-white/60' : 'text-neutral-700'}`} />
+    {children}
+  </div>
+);
+
+const inputBase = "block w-full pl-11 pr-4 py-3.5 border border-white/[0.05] rounded-xl bg-white/[0.015] text-[15px] text-white placeholder-neutral-700 focus:outline-none focus:border-white/[0.12] focus:bg-white/[0.03] transition-all duration-300";
+
 /* ── Register Component ───────────────────────────────────── */
 const Register = ({ onSwitchToLogin }) => {
   const [email, setEmail] = useState("");
@@ -103,15 +112,6 @@ const Register = ({ onSwitchToLogin }) => {
       toast.error("An unexpected error occurred."); setError(error.message);
     } finally { setLoading(false); }
   };
-
-  const InputField = ({ field, icon: Icon, iconTop, children }) => (
-    <div className={`relative rounded-xl transition-all duration-300 ${focusedField === field ? 'shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_0_25px_rgba(255,255,255,0.03)]' : ''}`}>
-      <Icon className={`absolute left-4 ${iconTop ? 'top-4' : 'top-1/2 -translate-y-1/2'} w-4 h-4 transition-colors duration-300 ${focusedField === field ? 'text-white/60' : 'text-neutral-700'}`} />
-      {children}
-    </div>
-  );
-
-  const inputBase = "block w-full pl-11 pr-4 py-3.5 border border-white/[0.05] rounded-xl bg-white/[0.015] text-[15px] text-white placeholder-neutral-700 focus:outline-none focus:border-white/[0.12] focus:bg-white/[0.03] transition-all duration-300";
 
   return (
     <div className="min-h-screen bg-[#040404] flex items-center justify-center p-4 relative overflow-hidden">
@@ -170,7 +170,7 @@ const Register = ({ onSwitchToLogin }) => {
                 {/* Email */}
                 <div className="space-y-1.5">
                   <label className="block text-[11px] font-bold text-neutral-500 uppercase tracking-[0.15em]">Email</label>
-                  <InputField field="email" icon={Mail}>
+                  <InputField field="email" icon={Mail} focusedField={focusedField}>
                     <input type="text" autoComplete="email" required className={inputBase}
                       placeholder="you@example.com" value={email} onChange={e => setEmail(e.target.value)}
                       onFocus={() => setFocusedField('email')} onBlur={() => setFocusedField(null)} />
@@ -182,7 +182,7 @@ const Register = ({ onSwitchToLogin }) => {
                   <div className="space-y-4 animate-[fadeSlideUp_0.3s_ease-out]">
                     <div className="space-y-1.5">
                       <label className="block text-[11px] font-bold text-neutral-500 uppercase tracking-[0.15em]">Artist Name</label>
-                      <InputField field="artistName" icon={User}>
+                      <InputField field="artistName" icon={User} focusedField={focusedField}>
                         <input type="text" required className={inputBase} placeholder="Your stage name"
                           value={artistName} onChange={e => setArtistName(e.target.value)}
                           onFocus={() => setFocusedField('artistName')} onBlur={() => setFocusedField(null)} />
@@ -190,7 +190,7 @@ const Register = ({ onSwitchToLogin }) => {
                     </div>
                     <div className="space-y-1.5">
                       <label className="block text-[11px] font-bold text-neutral-500 uppercase tracking-[0.15em]">Primary Genre</label>
-                      <InputField field="genre" icon={Music}>
+                      <InputField field="genre" icon={Music} focusedField={focusedField}>
                         <input type="text" required className={inputBase} placeholder="e.g. Synthwave"
                           value={genre} onChange={e => setGenre(e.target.value)}
                           onFocus={() => setFocusedField('genre')} onBlur={() => setFocusedField(null)} />
@@ -198,7 +198,7 @@ const Register = ({ onSwitchToLogin }) => {
                     </div>
                     <div className="space-y-1.5">
                       <label className="block text-[11px] font-bold text-neutral-500 uppercase tracking-[0.15em]">Bio <span className="text-neutral-700 normal-case">(optional)</span></label>
-                      <InputField field="bio" icon={FileText} iconTop>
+                      <InputField field="bio" icon={FileText} iconTop focusedField={focusedField}>
                         <textarea className={inputBase + " resize-none min-h-[72px]"} rows="2"
                           placeholder="Tell us about your sound..." value={bio} onChange={e => setBio(e.target.value)}
                           onFocus={() => setFocusedField('bio')} onBlur={() => setFocusedField(null)} />
@@ -210,7 +210,7 @@ const Register = ({ onSwitchToLogin }) => {
                 {/* Password */}
                 <div className="space-y-1.5">
                   <label className="block text-[11px] font-bold text-neutral-500 uppercase tracking-[0.15em]">Password</label>
-                  <InputField field="password" icon={Lock}>
+                  <InputField field="password" icon={Lock} focusedField={focusedField}>
                     <input type={showPassword ? "text" : "password"} autoComplete="new-password" required
                       className="block w-full pl-11 pr-12 py-3.5 border border-white/[0.05] rounded-xl bg-white/[0.015] text-[15px] text-white placeholder-neutral-700 focus:outline-none focus:border-white/[0.12] focus:bg-white/[0.03] transition-all duration-300"
                       placeholder="Create a password" value={password} onChange={e => setPassword(e.target.value)}
@@ -225,7 +225,7 @@ const Register = ({ onSwitchToLogin }) => {
                 {/* Confirm Password */}
                 <div className="space-y-1.5">
                   <label className="block text-[11px] font-bold text-neutral-500 uppercase tracking-[0.15em]">Confirm Password</label>
-                  <InputField field="confirmPassword" icon={Lock}>
+                  <InputField field="confirmPassword" icon={Lock} focusedField={focusedField}>
                     <input type="password" autoComplete="new-password" required className={inputBase}
                       placeholder="Confirm your password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
                       onFocus={() => setFocusedField('confirmPassword')} onBlur={() => setFocusedField(null)} />

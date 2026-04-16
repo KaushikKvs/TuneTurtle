@@ -9,6 +9,11 @@ export const PlayerContextProvider = ({ children }) => {
   const [songsData, setSongsData] = useState([]);
   const [albumsData, setAlbumsData] = useState([]);
   const [mySubscriptions, setMySubscriptions] = useState([]);
+  const [purchasedSongIds, setPurchasedSongIds] = useState([]);
+  const [purchasedAlbumIds, setPurchasedAlbumIds] = useState([]);
+  const [expiryMap, setExpiryMap] = useState({});
+  const [cartItems, setCartItems] = useState([]);
+  const [pendingPlaybackIds, setPendingPlaybackIds] = useState(new Set());
   const { user, token, getAuthHeaders } = useAuth();
 
   // Songs playing bar states
@@ -41,35 +46,158 @@ export const PlayerContextProvider = ({ children }) => {
     audioRef.current.pause();
     setPlayStatus(false);
   };
-  const checkAuthorization = (item) => {
-    if (!item) return false;
-    if (item.isFree !== false || !item.price || item.price === 0) return true; // Free
-    if (user?.role === 'ADMIN' || item.artistId === user?.id) return true; // Admin or Owner
-    return mySubscriptions.includes(item.artistId);
+
+  /**
+   * Unified Access Check (Backend-Enforced)
+   * This is the ONLY source of truth for playback authorization.
+   */
+  const verifyAccess = async (contentId) => {
+    if (!token) return { hasAccess: false, reason: 'NONE' };
+    try {
+        const { data } = await axios.get(`${API_BASE_URL}/api/access/check?contentId=${contentId}`, {
+            headers: getAuthHeaders()
+        });
+        return data; 
+    } catch (error) {
+        console.error("Access verification failed", error);
+        return { hasAccess: false, reason: 'NONE' };
+    }
   };
 
-  const playWithId = async (id) => {
-    const item = songsData.find(s => s.id === id || s._id === id);
-    if (!item) return;
+  const addToCart = (item, type = "SONG") => {
+    if (!item || (!item._id && !item.id)) return;
+    const itemId = item._id || item.id;
+    const itemName = item.name;
+    const itemPrice = Number(item.price);
+    const itemImage = item.image || item.imageUrl;
 
-    if (!checkAuthorization(item)) {
-      toast.error("Premium track! Subscribe to the artist to listen.", { style: { background: '#333', color: '#fff' }});
+    if (item.isFree || !itemPrice || itemPrice <= 0) {
+      toast("This item is free.");
       return;
     }
 
-    setTrack(item);
-    setTimeout(() => {
-      audioRef.current?.play();
-      setPlayStatus(true);
-    }, 50);
+    if (mySubscriptions.includes(item.artistId)) {
+        toast("You have Inner Circle access for this artist!");
+        return;
+    }
+
+    if (type === "SONG") {
+        if (purchasedSongIds.includes(itemId)) {
+            toast("You already own this song.");
+            return;
+        }
+        // Prevent adding song if its album is already in cart
+        const isAlbumInCart = cartItems.some(ci => ci.type === "ALBUM" && ci.itemName === item.album);
+        if (isAlbumInCart) {
+            toast("Album already in cart. Songs are included!");
+            return;
+        }
+    } else if (type === "ALBUM") {
+        if (purchasedAlbumIds.includes(itemId)) {
+            toast("You already own this album.");
+            return;
+        }
+    }
+
+    setCartItems((prev) => {
+      // Deduplicate
+      if (prev.some((ci) => ci.songId === itemId && ci.type === type)) {
+        return prev;
+      }
+
+      let newCart = [...prev];
+
+      // Mutual Exclusion Logic:
+      if (type === "ALBUM") {
+        // If adding an album, remove all individual songs from that album
+        newCart = newCart.filter(ci => !(ci.type === "SONG" && ci.albumName === itemName));
+      } else if (type === "SONG") {
+        // If adding a song, and its album is in the cart, remove the album 
+        // (as per user request: "selecting song should reset the album")
+        newCart = newCart.filter(ci => !(ci.type === "ALBUM" && ci.itemName === item.album));
+      }
+
+      return [
+        ...newCart,
+        {
+          songId: itemId, // Keeping key as songId for backward compatibility in DTO mapping
+          songName: itemName,
+          artistId: item.artistId,
+          amountPaid: itemPrice,
+          image: itemImage,
+          desc: item.desc,
+          type: type,
+          albumName: item.album || itemName // Track album name for filtering
+        }
+      ];
+    });
+    toast.success(`${itemName} added to cart`);
+  };
+
+  const addAlbumToCart = (album, albumSongs) => {
+      addToCart(album, "ALBUM");
+  };
+
+  const removeFromCart = (songId) => {
+    setCartItems((prev) => prev.filter((item) => item.songId !== songId));
+  };
+
+  const clearCart = () => {
+    setCartItems([]);
+  };
+
+  const playWithId = async (id) => {
+    if (pendingPlaybackIds.has(String(id))) {
+        console.log("Playback attempt ignored: Already checking access for", id);
+        return;
+    }
+
+    console.log("Attempting to play track:", id);
+    const item = songsData.find(s => String(s.id) === String(id) || String(s._id) === String(id));
+    
+    if (!item) {
+        console.error("Track not found in songsData:", id);
+        return;
+    }
+
+    // Set lock
+    setPendingPlaybackIds(prev => new Set(prev).add(String(id)));
+
+    try {
+        const access = await verifyAccess(item._id || item.id);
+        
+        if (!access.hasAccess) {
+          if (access.isExpired) {
+              toast.error("License Expired! Please renew to listen.");
+          } else {
+              toast.error("Premium track! Complete purchase or subscribe to listen.", { style: { background: '#333', color: '#fff' }});
+          }
+          return;
+        }
+
+        setTrack(item);
+        setTimeout(() => {
+          audioRef.current?.play();
+          setPlayStatus(true);
+        }, 50);
+    } finally {
+        // Release lock
+        setPendingPlaybackIds(prev => {
+            const next = new Set(prev);
+            next.delete(String(id));
+            return next;
+        });
+    }
   };
 
   const previous = async () => {
     const currentIndex = songsData.findIndex(item => item.id === track?.id || item._id === track?._id);
     if (currentIndex > 0) {
       const prevItem = songsData[currentIndex - 1];
-      if (!checkAuthorization(prevItem)) {
-        toast.error("Previous track is premium. Subscribe to listen.", { style: { background: '#333', color: '#fff' }});
+      const access = await verifyAccess(prevItem._id || prevItem.id);
+      
+      if (!access.hasAccess) {
+        toast.error("Previous track is premium. Complete purchase to listen.", { style: { background: '#333', color: '#fff' }});
         return;
       }
       setTrack(prevItem);
@@ -101,7 +229,8 @@ export const PlayerContextProvider = ({ children }) => {
   const next = async () => {
     const nextItem = getNextTrack();
     if (!nextItem) return;
-    if (!checkAuthorization(nextItem)) {
+    const access = await verifyAccess(nextItem._id || nextItem.id);
+    if (!access.hasAccess) {
       toast.error("Next track is premium. Subscribe to listen.", { style: { background: '#333', color: '#fff' }});
       return;
     }
@@ -209,6 +338,18 @@ export const PlayerContextProvider = ({ children }) => {
     repeatMode,
     toggleRepeat,
     mySubscriptions,
+    purchasedSongIds,
+    cartItems,
+    addToCart,
+    removeFromCart,
+    clearCart,
+    setPurchasedSongIds,
+    setSongsData,
+    setAlbumsData,
+    purchasedAlbumIds,
+    expiryMap,
+    addAlbumToCart,
+    verifyAccess
   };
 
   const getSubscriptionsData = async () => {
@@ -224,11 +365,55 @@ export const PlayerContextProvider = ({ children }) => {
     }
   };
 
+  const getOwnershipData = async () => {
+    try {
+      if (user) {
+        const { data } = await axios.get(`${API_BASE_URL}/api/transactions/ownership`, {
+        headers: getAuthHeaders(),
+      });
+      setPurchasedSongIds(data.songs || []);
+      setPurchasedAlbumIds(data.albums || []);
+      setMySubscriptions(data.subscriptions || []); // Mapping subscriptions if present
+      setExpiryMap(data.expiryMap || {});
+      }
+    } catch (error) {
+      console.error("Ownership err:", error);
+    }
+  };
+
+  const getPurchasedSongsData = async () => {
+      // Legacy - wrapped by getOwnershipData now
+      getOwnershipData();
+  };
+
+  useEffect(() => {
+    if (!user?.id) {
+      setCartItems([]);
+      return;
+    }
+    const savedCart = localStorage.getItem(`tuneturtle_cart_${user.id}`);
+    if (savedCart) {
+      try {
+        setCartItems(JSON.parse(savedCart));
+      } catch {
+        setCartItems([]);
+      }
+    } else {
+      setCartItems([]);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    localStorage.setItem(`tuneturtle_cart_${user.id}`, JSON.stringify(cartItems));
+  }, [cartItems, user?.id]);
+
   useEffect(() => {
     if (user && token) {
       getAlbumsData();
       getSongsData();
       getSubscriptionsData();
+      getPurchasedSongsData();
     }
   }, [user, token]);
 
@@ -247,8 +432,8 @@ export const PlayerContextProvider = ({ children }) => {
             minute: Math.floor(audio.currentTime / 60),
           },
           totalTime: {
-            second: Math.floor(audio.currentTime % 60),
-            minute: Math.floor(audio.currentTime / 60),
+            second: Math.floor(audio.duration % 60) || 0,
+            minute: Math.floor(audio.duration / 60) || 0,
           },
         });
       }

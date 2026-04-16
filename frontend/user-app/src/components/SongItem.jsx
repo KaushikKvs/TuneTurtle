@@ -1,103 +1,89 @@
-import React, { useContext, useState } from "react";
+import React, { useContext } from "react";
 import { PlayerContext } from "../context/PlayerContext";
-import { useNavigate } from "react-router-dom";
-import { ShoppingCart, Play, Lock } from "lucide-react";
-import { useAuth } from "../context/AuthContext";
-import axios from "axios";
+import { ShoppingCart, Play, Lock, CheckCircle2, Heart } from "lucide-react";
+import { useAuth, API_BASE_URL } from "../context/AuthContext";
 import toast from "react-hot-toast";
-import { loadRazorpayScript } from "../utils/razorpay";
+import axios from "axios";
+import { useState } from "react";
 
-const SongItem = ({ name, image, desc, id, price, isFree, artistId }) => {
-  const { playWithId, mySubscriptions } = useContext(PlayerContext);
-  const { user, getAuthHeaders, API_BASE_URL, isAuthenticated } = useAuth();
-  const navigate = useNavigate();
-  const [buying, setBuying] = useState(false);
+const SongItem = ({ name, image, desc, id, price, isFree, artistId, likedBy: initialLikedBy }) => {
+  const { playWithId, mySubscriptions, purchasedSongIds, cartItems, addToCart, expiryMap, songsData, setSongsData } = useContext(PlayerContext);
+  const { user, isAuthenticated, getAuthHeaders } = useAuth();
+  
+  // Local state for the specific song item to ensure immediate UI feedback
+  const [isLiking, setIsLiking] = useState(false);
+  
+  // Find the song in global data to get latest likedBy
+  const songInGlobal = songsData.find(s => String(s._id) === String(id) || String(s.id) === String(id));
+  const currentLikedBy = songInGlobal?.likedBy || initialLikedBy || [];
+  const hasLiked = currentLikedBy.includes(user?.id);
+  
+  const now = new Date();
+  const songExpiry = expiryMap[id];
+  const isExpired = songExpiry && new Date(songExpiry) < now;
 
-  // Check if user has access (free or subscribed or admin)
-  const hasAccess = isFree || (user?.role === 'ADMIN') || (mySubscriptions?.includes(artistId));
+  const hasAccess = (isFree || price === 0) || (user?.role === 'ADMIN') || 
+                   (artistId && user?.id && String(artistId).trim() === String(user.id).trim()) || 
+                   (mySubscriptions?.includes(artistId)) || (purchasedSongIds?.includes(id) && !isExpired);
+  const isInCart = cartItems?.some((item) => item.songId === id && item.type === "SONG");
+  const isParentAlbumInCart = cartItems?.some((item) => item.type === "ALBUM" && (item.songName === desc || item.albumName === desc)); // In SongItem, desc is often the album name
 
-  const handlePurchase = async (e) => {
+  const handleAddToCart = (e) => {
     e.stopPropagation(); // Prevent playing when clicking buy
     if (!isAuthenticated()) {
       toast.error("Please login to purchase");
       return;
     }
-    setBuying(true);
+    if (hasAccess) return;
+    addToCart({ _id: id, name, image, desc, artistId, price, isFree });
+  };
+
+  const handleLike = async (e) => {
+    e.stopPropagation();
+    if (!isAuthenticated()) {
+        toast.error("Login to like songs");
+        return;
+    }
+    if (isLiking) return;
+    setIsLiking(true);
 
     try {
-      const res = await loadRazorpayScript();
-      if (!res) {
-        toast.error("Razorpay SDK failed to load. Are you online?");
-        setBuying(false);
-        return;
-      }
-
-      // Step 1: Create Order
-      const transactionDetails = {
-          artistId: artistId,
-          type: "SONG",
-          itemId: id,
-          amountPaid: price || 0
-      };
-
-      const { data: orderData } = await axios.post(
-        `${API_BASE_URL}/api/transactions/create-order`,
-        transactionDetails,
-        { headers: getAuthHeaders() }
-      );
-
-      // Step 2: Open Razorpay Checkout
-      const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID, 
-        amount: price * 100, // paise
-        currency: "INR",
-        name: "TuneTurtle Premium",
-        description: `Purchase License for ${name}`,
-        image: image,
-        order_id: orderData.orderId,
-        handler: async function (response) {
-            try {
-                // Step 3: Verify Payment
-                await axios.post(
-                  `${API_BASE_URL}/api/transactions/verify-payment`,
-                  {
-                    razorpayOrderId: response.razorpay_order_id,
-                    razorpayPaymentId: response.razorpay_payment_id,
-                    razorpaySignature: response.razorpay_signature,
-                    transactionDetails: transactionDetails
-                  },
-                  { headers: getAuthHeaders() }
-                );
-                
-                toast.success(`Successfully purchased ${name}!`);
-                // Reload dashboard/subs effectively (you might want to trigger context refresh here)
-                window.location.reload(); 
-            } catch (err) {
-                toast.error("Payment verification failed. Please contact support.");
+        const response = await axios.patch(`${API_BASE_URL}/api/songs/${id}/like`, {}, {
+            headers: getAuthHeaders()
+        });
+        
+        if (response.status === 200) {
+            const updatedSong = response.data;
+            // Sync with global context
+            setSongsData(prev => prev.map(s => 
+                (String(s._id) === String(id) || String(s.id) === String(id)) ? updatedSong : s
+            ));
+            
+            if (updatedSong.likedBy?.includes(user.id)) {
+                toast.success(`Liked ${name}`);
+            } else {
+                toast.success(`Removed like from ${name}`);
             }
-        },
-        prefill: {
-            name: user?.name || "Fan",
-            email: user?.email || "",
-            contact: "9999999999" // Dummy for now
-        },
-        theme: {
-            color: "#00C950"
         }
-      };
-
-      const paymentObject = new window.Razorpay(options);
-      paymentObject.open();
-
     } catch (error) {
-      toast.error("Checkout failed: " + (error.response?.data?.message || "Internal Error"));
+        console.error("Song like error:", error);
+        toast.error("Failed to update like");
+    } finally {
+        setIsLiking(false);
     }
-    setBuying(false);
   };
 
   return (
     <div 
-      onClick={() => playWithId(id)} 
+      onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          if (hasAccess) {
+              playWithId(id);
+          } else {
+              handleAddToCart(e);
+          }
+      }} 
       className="premium-tracer group relative flex items-center gap-4 p-3 rounded-2xl cursor-pointer bg-transparent hover:bg-[var(--bg-hover)] transition-all duration-300 ease-in-out hover:shadow-[0_8px_30px_var(--accent-glow)] hover:-translate-y-1 animate-slide-up backdrop-blur-sm"
     >
       <div className="relative overflow-hidden rounded-xl w-16 h-16 sm:w-20 sm:h-20 flex-shrink-0 shadow-sm group-hover:shadow-[0_4px_15px_var(--accent-glow)] transition-all duration-500 ease-out">
@@ -125,6 +111,12 @@ const SongItem = ({ name, image, desc, id, price, isFree, artistId }) => {
             {!hasAccess && !isFree && (
                 <span className="text-[8px] bg-[var(--accent)]/10 text-[var(--accent)] px-1.5 py-0.5 rounded font-black uppercase tracking-widest border border-[var(--accent)]/20">Premium</span>
             )}
+            <Heart 
+                onClick={handleLike}
+                className={`w-3.5 h-3.5 ml-1 transition-all duration-300 hover:scale-125 cursor-pointer ${
+                    hasLiked ? "text-[var(--accent)] fill-current" : "text-[var(--text-meta)] fill-none opacity-0 group-hover:opacity-100"
+                }`} 
+            />
         </div>
         <p className="text-[var(--text-secondary)] text-xs font-medium truncate opacity-70 group-hover:opacity-100 transition-opacity">{desc}</p>
       </div>
@@ -135,17 +127,24 @@ const SongItem = ({ name, image, desc, id, price, isFree, artistId }) => {
                Digital Access Free
              </span>
          ) : hasAccess ? (
-            <span className="text-[10px] font-black px-2 py-1 rounded-full bg-blue-500/10 text-blue-500 border border-blue-500/20 tracking-tighter uppercase flex items-center gap-1">
-               <Lock className="w-2.5 h-2.5" /> Licensed
+            <span className="text-[10px] font-black px-2 py-1 rounded-full bg-green-500/10 text-green-500 border border-green-500/20 tracking-tighter uppercase flex items-center gap-1">
+               <CheckCircle2 className="w-2.5 h-2.5" /> Owned ✅
+            </span>
+         ) : isInCart ? (
+            <span className="text-[10px] font-black px-2 py-1 rounded-full bg-[var(--accent)]/10 text-[var(--accent)] border border-[var(--accent)]/20 tracking-tighter uppercase flex items-center gap-1">
+               <CheckCircle2 className="w-2.5 h-2.5" /> In Cart 🛒
+            </span>
+         ) : isParentAlbumInCart ? (
+            <span className="text-[10px] font-black px-2 py-1 rounded-full bg-[var(--bg-hover)] text-[var(--accent)] border border-[var(--accent)]/10 tracking-tighter uppercase flex items-center gap-1 opacity-60">
+               <ShoppingCart className="w-2.5 h-2.5" /> Album in Cart
             </span>
          ) : (
             <button 
-                onClick={handlePurchase}
-                disabled={buying}
+                onClick={handleAddToCart}
                 className="flex items-center gap-2 bg-[var(--text-primary)] text-[var(--bg-base)] px-4 py-2 rounded-xl font-bold text-xs hover:bg-[var(--accent)] hover:text-white transition-all transform active:scale-95 shadow-lg shadow-black/20"
             >
                 <ShoppingCart className="w-3.5 h-3.5" />
-                {buying ? "..." : `₹${price || 0}`}
+                {isExpired ? "Renew 🔄" : `₹${price || 0}`}
             </button>
          )}
       </div>

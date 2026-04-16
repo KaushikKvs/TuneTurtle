@@ -78,16 +78,32 @@
   --bg-base: #000000; /* Absolute Black Combo */
   --bg-surface: #0A0A0A; /* Sleek Dark Core */
   --bg-card: #111111;
-  --bg-hover: rgba(237, 41, 44, 0.1); /* Subtle Scarlet Hover */
+  --bg-hover: rgba(237, 41, 44, 0.1); 
   --text-primary: #FFFFFF;
   --text-secondary: #A0A0A0;
   --text-meta: #666666;
   --border-subtle: rgba(237, 41, 44, 0.2); 
-  --accent: #ED292C; /* Precise Scarlet Target */
+  --accent: #ED292C; 
   --accent-glow: rgba(237, 41, 44, 0.65);
   --dashboard-accent: #ED292C;
   --tag-bg: rgba(237, 41, 44, 0.15); 
   --tag-text: #ED292C;
+}
+
+[data-theme='tune-solo'] {
+  --bg-base: #0F1224; /* Solo Deep Navy */
+  --bg-surface: #11142A; /* Hunter Surface */
+  --bg-card: #1A1F3A; /* Highlight Core */
+  --bg-hover: rgba(124, 58, 237, 0.15); /* Shadow Monarch Purple */
+  --text-primary: #E5E7EB; /* Light Gray */
+  --text-secondary: #9CA3AF; /* S-Rank Silver */
+  --text-meta: #4B5563;
+  --border-subtle: rgba(124, 58, 237, 0.2); 
+  --accent: #7C3AED; /* Monarch Violet */
+  --accent-glow: rgba(124, 58, 237, 0.6);
+  --dashboard-accent: #7C3AED;
+  --tag-bg: rgba(34, 211, 238, 0.1); /* Hunter Cyan */
+  --tag-text: #22D3EE;
 }
 
 @keyframes pulse-glow {
@@ -282,4 +298,30 @@ body {
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Custom Premium Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  display: block;
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: var(--bg-base);
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 10px;
+  border: 1px solid var(--bg-base);
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-glow);
+}
+
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--accent) var(--bg-base);
 }

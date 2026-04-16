@@ -4,14 +4,13 @@ import axios from "axios";
 import { UserCircle, BadgeCheck, Music, CheckCircle, Disc, ShoppingCart, PlayCircle, Star, Users } from "lucide-react";
 import toast from "react-hot-toast";
 import { PlayerContext } from "../context/PlayerContext";
-import { useAuth } from "../context/AuthContext";
+import { API_BASE_URL, useAuth } from "../context/AuthContext";
 import AlbumItem from "./AlbumItem";
 import SongItem from "./SongItem";
-import { loadRazorpayScript } from "../utils/razorpay";
 
 const ArtistProfile = () => {
   const { id } = useParams();
-  const { user, getAuthHeaders, API_BASE_URL } = useAuth();
+  const { user, getAuthHeaders } = useAuth();
   const { albumsData, songsData, playWithId } = useContext(PlayerContext);
   const navigate = useNavigate();
   
@@ -50,6 +49,38 @@ const ArtistProfile = () => {
     if (id) fetchArtistData();
   }, [id, user, API_BASE_URL]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const stripeSessionId = params.get("stripe_session_id");
+    const paymentStatus = params.get("payment");
+
+    if (paymentStatus === "cancelled") {
+      toast("Payment cancelled.");
+      return;
+    }
+
+    if (!stripeSessionId || !user || isSubscribed) {
+      return;
+    }
+
+    const confirmSession = async () => {
+      try {
+        await axios.post(
+          `${API_BASE_URL}/api/transactions/stripe/confirm-session`,
+          { sessionId: stripeSessionId },
+          { headers: getAuthHeaders() }
+        );
+        setIsSubscribed(true);
+        toast.success(`Welcome to ${artist?.artistName || "the"} Inner Circle!`);
+        window.history.replaceState({}, document.title, window.location.pathname);
+      } catch (error) {
+        toast.error("Payment could not be verified.");
+      }
+    };
+
+    confirmSession();
+  }, [user, isSubscribed, API_BASE_URL, getAuthHeaders, artist]);
+
   // Filter content belonging to this artist
   // We match by artistName or artistId if available in the data objects
   const artistAlbums = albumsData.filter(album => 
@@ -67,60 +98,27 @@ const ArtistProfile = () => {
     }
     setCheckingOut(true);
     try {
-      const res = await loadRazorpayScript();
-      if (!res) {
-        toast.error("Razorpay SDK failed to load. Are you online?");
-        setCheckingOut(false);
-        return;
-      }
-
       const transactionDetails = {
         artistId: id,
         type: "SUBSCRIPTION",
         amountPaid: 299.0
       };
-
-      // Step 1
-      const { data: orderData } = await axios.post(
-        `${API_BASE_URL}/api/transactions/create-order`,
-        transactionDetails,
+      const currentUrl = `${window.location.origin}/artist/${id}`;
+      const { data: sessionData } = await axios.post(
+        `${API_BASE_URL}/api/transactions/stripe/create-checkout-session`,
+        {
+          transactionDetails,
+          successUrl: `${currentUrl}?stripe_session_id={CHECKOUT_SESSION_ID}`,
+          cancelUrl: `${currentUrl}?payment=cancelled`
+        },
         { headers: getAuthHeaders() }
       );
 
-      // Step 2
-      const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID, 
-        amount: 29900, // paise
-        currency: "INR",
-        name: "TuneTurtle Premium",
-        description: `Inner Circle Access: ${artist?.artistName}`,
-        order_id: orderData.orderId,
-        handler: async function (response) {
-            try {
-                // Step 3
-                await axios.post(
-                  `${API_BASE_URL}/api/transactions/verify-payment`,
-                  {
-                    razorpayOrderId: response.razorpay_order_id,
-                    razorpayPaymentId: response.razorpay_payment_id,
-                    razorpaySignature: response.razorpay_signature,
-                    transactionDetails: transactionDetails
-                  },
-                  { headers: getAuthHeaders() }
-                );
-                
-                toast.success(`Welcome to ${artist?.artistName}'s Inner Circle!`);
-                setIsSubscribed(true);
-            } catch (err) {
-                toast.error("Payment verification failed. Please contact support.");
-            }
-        },
-        prefill: { name: user?.name, email: user?.email, contact: "9999999999" },
-        theme: { color: "#00C950" }
-      };
+      if (!sessionData?.url) {
+        throw new Error("Stripe checkout URL not received");
+      }
 
-      const paymentObject = new window.Razorpay(options);
-      paymentObject.open();
+      window.location.href = sessionData.url;
 
     } catch (error) {
       toast.error("Checkout failed: " + (error.response?.data?.message || "Internal Server Error"));
@@ -283,7 +281,7 @@ const ArtistProfile = () => {
             {artistSongs.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {artistSongs.map((item, index) => (
-                        <SongItem key={index} name={item.name} desc={item.desc} id={item._id} image={item.image} price={item.price} isFree={item.isFree} />
+                        <SongItem key={index} name={item.name} desc={item.desc} id={item._id} image={item.image} price={item.price} isFree={item.isFree} artistId={item.artistId || id} />
                     ))}
                 </div>
             ) : (

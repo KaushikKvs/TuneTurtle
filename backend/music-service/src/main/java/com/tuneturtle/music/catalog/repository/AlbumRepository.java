@@ -7,4 +7,5 @@ import java.util.List;
 
 public interface AlbumRepository extends MongoRepository<Album,String> {
     List<Album> findByArtistId(String artistId);
+    java.util.Optional<Album> findByName(String name);
 }

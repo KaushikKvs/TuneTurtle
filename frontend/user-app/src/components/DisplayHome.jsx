@@ -2,9 +2,24 @@ import React, { useContext } from "react";
 import { PlayerContext } from "../context/PlayerContext";
 import AlbumItem from "./AlbumItem";
 import SongItem from "./SongItem";
+import { useAuth } from "../context/AuthContext";
 
 const DisplayHome = () => {
   const { songsData, albumsData } = useContext(PlayerContext);
+  const { user } = useAuth();
+
+  // Helper for robust ID comparison
+  const isMine = (artistId) => artistId && user?.id && String(artistId).trim() === String(user.id).trim();
+
+  // Separate personal content from global content
+  const myAlbums = albumsData.filter(album => isMine(album.artistId));
+  const featuredAlbums = albumsData.filter(album => !isMine(album.artistId));
+  
+  const mySongs = songsData.filter(song => isMine(song.artistId));
+  const trendingSongs = songsData.filter(song => !isMine(song.artistId));
+
+  const isArtist = user?.role === 'ARTIST';
+
   return (
     <>
       {/* Immersive Parallax Hero Banner */}
@@ -29,11 +44,52 @@ const DisplayHome = () => {
         </div>
       </div>
 
-      {/* Featured Charts - horizontal scroll for album cards */}
+      {/* Artist's Personal Discography - Only for Artists */}
+      {isArtist && myAlbums.length > 0 && (
+        <div className="mb-12 animate-slide-up bg-[var(--accent)]/5 p-8 rounded-[2rem] border border-[var(--accent)]/10 shadow-inner">
+          <div className="flex items-center gap-3 mb-6">
+              <div className="w-2 h-8 bg-[var(--accent)] rounded-full shadow-[0_0_15px_var(--accent-glow)]"></div>
+              <h1 className="font-black tracking-tight text-3xl">Your Releases</h1>
+          </div>
+          <div className="flex overflow-x-auto gap-4 pb-2 scrollbar-hide">
+            {myAlbums.map((item, index) => (
+              <div key={index} className="flex-shrink-0">
+                  <AlbumItem
+                    name={item.name}
+                    desc={item.desc}
+                    id={item._id}
+                    image={item.imageUrl}
+                    price={item.price}
+                    isFree={item.isFree}
+                    artistId={item.artistId}
+                  />
+              </div>
+            ))}
+          </div>
+          {mySongs.length > 0 && (
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-3 opacity-90">
+                {mySongs.slice(0, 4).map((item, index) => (
+                    <SongItem
+                        key={index}
+                        name={item.name}
+                        desc={item.desc}
+                        id={item._id}
+                        image={item.image}
+                        price={item.price}
+                        isFree={item.isFree}
+                        artistId={item.artistId}
+                    />
+                ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Featured Charts - Global Content */}
       <div className="mb-12 animate-slide-up">
         <h1 className="my-5 font-black tracking-tight text-3xl">Featured Collections</h1>
         <div className="flex overflow-x-auto gap-4 pb-6 scrollbar-hide">
-          {albumsData.map((item, index) => (
+          {featuredAlbums.map((item, index) => (
             <div key={index} className="flex-shrink-0">
                 <AlbumItem
                   name={item.name}
@@ -42,17 +98,18 @@ const DisplayHome = () => {
                   image={item.imageUrl}
                   price={item.price}
                   isFree={item.isFree}
+                  artistId={item.artistId}
                 />
             </div>
           ))}
         </div>
       </div>
 
-      {/* Today's Biggest Hits - responsive grid for song list items */}
-      <div className="mb-4">
+      {/* Today's Biggest Hits - Global Content */}
+      <div className="mb-20">
         <h1 className="my-5 font-bold text-2xl">Today's Biggest Hits</h1>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {songsData.map((item, index) => (
+          {trendingSongs.map((item, index) => (
             <SongItem
               key={index}
               name={item.name}
