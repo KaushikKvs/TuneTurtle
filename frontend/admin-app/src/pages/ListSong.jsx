@@ -69,6 +69,7 @@ const ListSong = () => {
                             <tr className="border-b border-[var(--border-subtle)] bg-[var(--bg-base)]/50">
                                 <th className="px-6 py-5 text-xs font-bold text-[var(--text-meta)] uppercase tracking-widest">Track</th>
                                 <th className="px-6 py-5 text-xs font-bold text-[var(--text-meta)] uppercase tracking-widest text-center">Album</th>
+                                <th className="px-6 py-5 text-xs font-bold text-[var(--text-meta)] uppercase tracking-widest text-center">Views</th>
                                 <th className="px-6 py-5 text-xs font-bold text-[var(--text-meta)] uppercase tracking-widest text-center">Pricing</th>
                                 <th className="px-6 py-5 text-xs font-bold text-[var(--text-meta)] uppercase tracking-widest text-center">Duration</th>
                                 <th className="px-6 py-5 text-xs font-bold text-[var(--text-meta)] uppercase tracking-widest text-center whitespace-nowrap">Artist ID</th>
@@ -106,6 +107,11 @@ const ListSong = () => {
                                         <td className="px-6 py-5 text-center">
                                             <span className="px-3 py-1 bg-[var(--bg-base)] rounded-full text-[10px] text-[var(--text-secondary)] font-black uppercase tracking-widest border border-[var(--border-subtle)]">
                                                 {song.album || "Single"}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-5 text-center">
+                                            <span className="text-sm font-black text-[var(--text-primary)] tracking-tight">
+                                                {(song.views || 0).toLocaleString()}
                                             </span>
                                         </td>
                                         <td className="px-6 py-5 text-center">

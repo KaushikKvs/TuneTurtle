@@ -162,7 +162,7 @@ public class TransactionService {
         }
 
         // Try Mongo first for historical reasons / speed
-        Transaction existingTransaction = transactionRepository.findByPaymentReference(sessionId).orElse(null);
+        Transaction existingTransaction = transactionRepository.findFirstByPaymentReference(sessionId).orElse(null);
         if (existingTransaction != null) {
             return existingTransaction;
         }
@@ -277,7 +277,7 @@ public class TransactionService {
 
         if (pendingCheckout.isConfirmed()) {
             return pendingCheckout.getItems().stream()
-                    .map(item -> transactionRepository.findByPaymentReference(sessionId + ":" + item.getSongId()).orElse(null))
+                    .map(item -> transactionRepository.findFirstByPaymentReference(sessionId + ":" + item.getSongId()).orElse(null))
                     .filter(t -> t != null)
                     .collect(Collectors.toList());
         }
@@ -291,7 +291,7 @@ public class TransactionService {
         List<Transaction> savedTransactions = new ArrayList<>();
         for (CartCheckoutItem item : pendingCheckout.getItems()) {
             String paymentReference = sessionId + ":" + item.getSongId();
-            Transaction existingTransaction = transactionRepository.findByPaymentReference(paymentReference).orElse(null);
+            Transaction existingTransaction = transactionRepository.findFirstByPaymentReference(paymentReference).orElse(null);
             if (existingTransaction != null) {
                 savedTransactions.add(existingTransaction);
                 continue;
@@ -341,32 +341,35 @@ public class TransactionService {
             savedMongoTx = transactionRepository.save(transaction);
         } catch (org.springframework.dao.DuplicateKeyException e) {
             // Fetch existing if race condition happened
-            return transactionRepository.findByPaymentReference(paymentReference).orElseThrow(() -> e);
+            return transactionRepository.findFirstByPaymentReference(paymentReference).orElseThrow(() -> e);
         }
 
-        // SYNC TO SUPABASE (PostgreSQL)
-        try {
-            com.tuneturtle.music.monetization.entity.TransactionEntity jpaEntity = com.tuneturtle.music.monetization.entity.TransactionEntity.builder()
-                .mongoId(savedMongoTx.getId())
-                .fanId(savedMongoTx.getFanId())
-                .artistId(savedMongoTx.getArtistId())
-                .type(savedMongoTx.getType())
-                .itemId(savedMongoTx.getItemId())
-                .paymentReference(savedMongoTx.getPaymentReference())
-                .amountPaid(savedMongoTx.getAmountPaid())
-                .platformFee(savedMongoTx.getPlatformFee())
-                .artistEarnings(savedMongoTx.getArtistEarnings())
-                .expiryDate(savedMongoTx.getExpiryDate())
-                .createdAt(savedMongoTx.getCreatedAt())
-                .build();
-            transactionJpaRepository.save(jpaEntity);
-        } catch (org.springframework.dao.DataIntegrityViolationException dive) {
-            // Already synced, this is fine
-            System.out.println("Supabase already synced for: " + paymentReference);
-        } catch (Exception e) {
-            // Log other errors but don't fail the checkout
-            System.err.println("Supabase Sync Error: " + e.getMessage());
-        }
+        // SYNC TO SUPABASE (PostgreSQL) - Async to prevent blocking the main response
+        java.util.concurrent.CompletableFuture.runAsync(() -> {
+            try {
+                com.tuneturtle.music.monetization.entity.TransactionEntity jpaEntity = com.tuneturtle.music.monetization.entity.TransactionEntity.builder()
+                    .mongoId(savedMongoTx.getId())
+                    .fanId(savedMongoTx.getFanId())
+                    .artistId(savedMongoTx.getArtistId())
+                    .type(savedMongoTx.getType())
+                    .itemId(savedMongoTx.getItemId())
+                    .paymentReference(savedMongoTx.getPaymentReference())
+                    .amountPaid(savedMongoTx.getAmountPaid())
+                    .platformFee(savedMongoTx.getPlatformFee())
+                    .artistEarnings(savedMongoTx.getArtistEarnings())
+                    .expiryDate(savedMongoTx.getExpiryDate())
+                    .createdAt(savedMongoTx.getCreatedAt())
+                    .build();
+                transactionJpaRepository.save(jpaEntity);
+                System.out.println("Supabase sync successful for: " + paymentReference);
+            } catch (org.springframework.dao.DataIntegrityViolationException dive) {
+                // Already synced, this is fine
+                System.out.println("Supabase already synced for: " + paymentReference);
+            } catch (Exception e) {
+                // Log other errors but doesn't fail the checkout
+                System.err.println("Supabase Sync Background Error: " + e.getMessage());
+            }
+        });
 
         return savedMongoTx;
     }

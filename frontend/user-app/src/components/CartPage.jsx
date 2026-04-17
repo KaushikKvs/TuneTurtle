@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ShoppingCart, Trash2, CreditCard, Music2 } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -10,6 +10,7 @@ const CartPage = () => {
   const { user, getAuthHeaders } = useAuth();
   const [checkingOut, setCheckingOut] = useState(false);
 
+  const processingRef = useRef(false);
   const total = useMemo(() => {
     return cartItems.reduce((sum, item) => sum + (Number(item.amountPaid) || 0), 0);
   }, [cartItems]);
@@ -24,9 +25,10 @@ const CartPage = () => {
       return;
     }
 
-    if (!sessionId || !user) return;
+    if (!sessionId || !user || processingRef.current) return;
 
     const confirmCartSession = async () => {
+      processingRef.current = true;
       try {
         await axios.post(
           `${API_BASE_URL}/api/transactions/stripe/confirm-cart-session`,
@@ -34,13 +36,13 @@ const CartPage = () => {
           { headers: getAuthHeaders() }
         );
 
-        // Ownership logic is complex now, better to just let PlayerContext 
-        // refresh everything from the /my-ownership endpoint
-        clearCart();
-        toast.success("Payment successful. Digital access granted!");
+        // Clean up UI state immediately
         window.history.replaceState({}, document.title, window.location.pathname);
+        clearCart();
+        toast.success("Payment successful. Digital access granted!", { duration: 5000 });
       } catch (error) {
         toast.error(error.response?.data || "Could not verify cart payment.");
+        processingRef.current = false;
       }
     };
 
@@ -54,6 +56,11 @@ const CartPage = () => {
     }
     if (cartItems.length === 0) {
       toast.error("Your cart is empty.");
+      return;
+    }
+
+    if (total < 50) {
+      toast.error("Stripe requires a minimum checkout of ₹50. Please add more items to your cart.", { id: "min-checkout" });
       return;
     }
 
@@ -136,7 +143,12 @@ const CartPage = () => {
         <div className="mt-8 rounded-3xl p-6 bg-[var(--bg-surface)] border border-[var(--border-subtle)]">
           <div className="flex items-center justify-between">
             <p className="text-sm uppercase tracking-[0.15em] text-[var(--text-meta)] font-bold">Total</p>
-            <p className="text-3xl font-black text-[var(--text-primary)]">₹{total.toFixed(2)}</p>
+            <div className="flex flex-col items-end">
+                <p className="text-3xl font-black text-[var(--text-primary)]">₹{total.toFixed(2)}</p>
+                {total < 50 && (
+                    <p className="text-[10px] text-red-400 font-bold mt-1">Minimum checkout ₹50 required</p>
+                )}
+            </div>
           </div>
           <div className="mt-5 flex gap-3">
             <button

@@ -101,6 +101,12 @@ const ListAlbum = () => {
                                         {album.isFree ? 'FREE' : `₹${album.price}`}
                                     </span>
                                 </div>
+                                <div className="flex flex-col items-end">
+                                    <span className="text-[9px] text-[var(--text-meta)] uppercase font-black tracking-widest">Views</span>
+                                    <span className="text-sm font-black text-[var(--text-primary)] tracking-tight">
+                                        {(album.views || 0).toLocaleString()}
+                                    </span>
+                                </div>
                                 <div 
                                     className="w-9 h-9 rounded-lg bg-[var(--dashboard-accent)]/5 flex items-center justify-center border border-[var(--border-subtle)]"
                                     title={`Theme: ${album.bgColor}`}

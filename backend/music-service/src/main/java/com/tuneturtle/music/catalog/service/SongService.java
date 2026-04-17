@@ -16,8 +16,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.io.IOException;
 import java.util.Map;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.query.Update;
 
 @Service
@@ -92,6 +93,10 @@ public class SongService {
     public Song toggleLikeSong(String id, String userId) {
         Song song = songRepository.findById(id).orElseThrow(() -> new RuntimeException("Song Not Found"));
         
+        if (song.getArtistId() != null && song.getArtistId().equals(userId)) {
+            throw new RuntimeException("You cannot like your own creation");
+        }
+        
         Query query = new Query(Criteria.where("id").is(id));
         Update update = new Update();
         
@@ -101,6 +106,6 @@ public class SongService {
             update.addToSet("likedBy", userId);
         }
         
-        return mongoTemplate.findAndModify(query, update, Song.class);
+        return mongoTemplate.findAndModify(query, update, FindAndModifyOptions.options().returnNew(true), Song.class);
     }
 }

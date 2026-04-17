@@ -100,9 +100,12 @@ export const PlayerContextProvider = ({ children }) => {
     }
 
     setCartItems((prev) => {
-      // Deduplicate
-      if (prev.some((ci) => ci.songId === itemId && ci.type === type)) {
-        return prev;
+      // Toggle Logic: If item is already in cart, remove it
+      const existingItemIndex = prev.findIndex((ci) => ci.songId === itemId && ci.type === type);
+      
+      if (existingItemIndex !== -1) {
+        toast(`Removed ${itemName} from cart`, { icon: '🗑️' });
+        return prev.filter((_, i) => i !== existingItemIndex);
       }
 
       let newCart = [...prev];
@@ -113,25 +116,24 @@ export const PlayerContextProvider = ({ children }) => {
         newCart = newCart.filter(ci => !(ci.type === "SONG" && ci.albumName === itemName));
       } else if (type === "SONG") {
         // If adding a song, and its album is in the cart, remove the album 
-        // (as per user request: "selecting song should reset the album")
         newCart = newCart.filter(ci => !(ci.type === "ALBUM" && ci.itemName === item.album));
       }
 
+      toast.success(`${itemName} added to cart`);
       return [
         ...newCart,
         {
-          songId: itemId, // Keeping key as songId for backward compatibility in DTO mapping
+          songId: itemId, 
           songName: itemName,
           artistId: item.artistId,
           amountPaid: itemPrice,
           image: itemImage,
           desc: item.desc,
           type: type,
-          albumName: item.album || itemName // Track album name for filtering
+          albumName: item.album || itemName 
         }
       ];
     });
-    toast.success(`${itemName} added to cart`);
   };
 
   const addAlbumToCart = (album, albumSongs) => {
@@ -389,6 +391,10 @@ export const PlayerContextProvider = ({ children }) => {
   useEffect(() => {
     if (!user?.id) {
       setCartItems([]);
+      setPurchasedSongIds([]);
+      setPurchasedAlbumIds([]);
+      setMySubscriptions([]);
+      setExpiryMap({});
       return;
     }
     const savedCart = localStorage.getItem(`tuneturtle_cart_${user.id}`);
@@ -454,10 +460,38 @@ export const PlayerContextProvider = ({ children }) => {
       }
     };
 
+    const handlePlaying = () => {
+        if (!track) return;
+        const trackId = track._id || track.id;
+        
+        // Local deduplication to prevent multiple fires for the same track instance
+        const sessionId = sessionStorage.getItem("tuneturtle_session_id") || 
+                         (Math.random().toString(36).substring(2) + Date.now());
+        if (!sessionStorage.getItem("tuneturtle_session_id")) {
+            sessionStorage.setItem("tuneturtle_session_id", sessionId);
+        }
+
+        axios.post(`${API_BASE_URL}/api/analytics/play`, {
+            songId: trackId,
+            albumId: localAlbumIdForAnalytic(track), // Helper to find album
+            userId: user?.id,
+            sessionId: sessionId,
+            type: "SONG"
+        }).catch(err => console.error("Analytics failed", err));
+    };
+
+    // Helper to find album ID internally
+    const localAlbumIdForAnalytic = (t) => {
+        if (!t?.album) return null;
+        const album = albumsData.find(a => a.name === t.album);
+        return album?._id || album?.id;
+    };
+
     //add event listeners
     audio.addEventListener("timeupdate", updateSeekBar);
     audio.addEventListener("loadedmetadata", handleLoadedMetadata);
     audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("playing", handlePlaying, { once: true }); // Deduplicate per track load
 
     // Sync volume to audio element
     audio.volume = volume;

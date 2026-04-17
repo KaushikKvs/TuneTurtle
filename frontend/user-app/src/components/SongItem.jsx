@@ -16,14 +16,15 @@ const SongItem = ({ name, image, desc, id, price, isFree, artistId, likedBy: ini
   // Find the song in global data to get latest likedBy
   const songInGlobal = songsData.find(s => String(s._id) === String(id) || String(s.id) === String(id));
   const currentLikedBy = songInGlobal?.likedBy || initialLikedBy || [];
-  const hasLiked = currentLikedBy.includes(user?.id);
+  const hasLiked = currentLikedBy.some(id => String(id) === String(user?.id));
+  const isCreator = artistId && user?.id && String(artistId).trim() === String(user.id).trim();
   
   const now = new Date();
   const songExpiry = expiryMap[id];
   const isExpired = songExpiry && new Date(songExpiry) < now;
 
   const hasAccess = (isFree || price === 0) || (user?.role === 'ADMIN') || 
-                   (artistId && user?.id && String(artistId).trim() === String(user.id).trim()) || 
+                   isCreator || 
                    (mySubscriptions?.includes(artistId)) || (purchasedSongIds?.includes(id) && !isExpired);
   const isInCart = cartItems?.some((item) => item.songId === id && item.type === "SONG");
   const isParentAlbumInCart = cartItems?.some((item) => item.type === "ALBUM" && (item.songName === desc || item.albumName === desc)); // In SongItem, desc is often the album name
@@ -44,6 +45,10 @@ const SongItem = ({ name, image, desc, id, price, isFree, artistId, likedBy: ini
         toast.error("Login to like songs");
         return;
     }
+    if (isCreator) {
+        toast.error("You cannot like your own creation!");
+        return;
+    }
     if (isLiking) return;
     setIsLiking(true);
 
@@ -60,14 +65,15 @@ const SongItem = ({ name, image, desc, id, price, isFree, artistId, likedBy: ini
             ));
             
             if (updatedSong.likedBy?.includes(user.id)) {
-                toast.success(`Liked ${name}`);
+                toast.success(`Liked ${name}`, { id: `like-song-${id}` });
             } else {
-                toast.success(`Removed like from ${name}`);
+                toast.success(`Removed like from ${name}`, { id: `like-song-${id}` });
             }
         }
     } catch (error) {
         console.error("Song like error:", error);
-        toast.error("Failed to update like");
+        const errorMsg = error.response?.data?.message || error.response?.data || "Failed to update like";
+        toast.error(errorMsg, { id: `like-error-${id}` });
     } finally {
         setIsLiking(false);
     }
@@ -111,12 +117,18 @@ const SongItem = ({ name, image, desc, id, price, isFree, artistId, likedBy: ini
             {!hasAccess && !isFree && (
                 <span className="text-[8px] bg-[var(--accent)]/10 text-[var(--accent)] px-1.5 py-0.5 rounded font-black uppercase tracking-widest border border-[var(--accent)]/20">Premium</span>
             )}
-            <Heart 
-                onClick={handleLike}
-                className={`w-3.5 h-3.5 ml-1 transition-all duration-300 hover:scale-125 cursor-pointer ${
-                    hasLiked ? "text-[var(--accent)] fill-current" : "text-[var(--text-meta)] fill-none opacity-0 group-hover:opacity-100"
-                }`} 
-            />
+            <div className="flex items-center gap-1 group/heart">
+                <Heart 
+                    onClick={handleLike}
+                    className={`w-3.5 h-3.5 ml-1 transition-all duration-300 hover:scale-125 cursor-pointer ${
+                        isCreator ? "text-[var(--accent)]/30 fill-none cursor-default" :
+                        hasLiked ? "text-[var(--accent)] fill-current" : "text-[var(--text-meta)] fill-none opacity-0 group-hover:opacity-100"
+                    }`} 
+                />
+                <span className={`text-[10px] font-bold text-[var(--accent)] transition-opacity ${currentLikedBy.length > 0 ? "opacity-100" : "opacity-0 group-hover/heart:opacity-100"}`}>
+                    {currentLikedBy.length}
+                </span>
+            </div>
         </div>
         <p className="text-[var(--text-secondary)] text-xs font-medium truncate opacity-70 group-hover:opacity-100 transition-opacity">{desc}</p>
       </div>

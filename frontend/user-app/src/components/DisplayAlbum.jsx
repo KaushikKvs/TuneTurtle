@@ -35,11 +35,16 @@ const DisplayAlbum = ({ album }) => {
   };
 
   const [isLiking, setIsLiking] = useState(false);
-  const hasLiked = localAlbum?.likedBy?.includes(user?.id);
+  const hasLiked = localAlbum?.likedBy?.some(id => String(id) === String(user?.id));
+  const isCreator = localAlbum?.artistId && user?.id && String(localAlbum.artistId).trim() === String(user.id).trim();
 
   const handleLikeAlbum = async () => {
     if (!isAuthenticated()) {
         toast.error("Login to like this album");
+        return;
+    }
+    if (isCreator) {
+        toast.error("You cannot like your own creation!");
         return;
     }
     if (isLiking) return;
@@ -59,14 +64,14 @@ const DisplayAlbum = ({ album }) => {
             ));
             
             if (updatedAlbum.likedBy?.includes(user.id)) {
-                toast.success("Added to liked albums");
+                toast.success("Added to liked albums", { id: `like-album-${albumId}` });
             } else {
-                toast.success("Removed from liked albums");
+                toast.success("Removed from liked albums", { id: `like-album-${albumId}` });
             }
         }
     } catch (error) {
         console.error("Like error:", error);
-        toast.error("Failed to update like");
+        toast.error(error.response?.data?.message || "Failed to update like");
     } finally {
         setIsLiking(false);
     }
@@ -159,18 +164,19 @@ const DisplayAlbum = ({ album }) => {
             </p>
             <button 
                 onClick={handleLikeAlbum}
-                disabled={isLiking}
+                disabled={isLiking || isCreator}
                 className={`flex items-center gap-2 px-6 py-2 rounded-full transition-all duration-300 transform active:scale-95 group ${
-                    hasLiked 
+                    isCreator
+                    ? "bg-[var(--bg-hover)] text-[var(--accent)] border border-[var(--accent)]/20 cursor-default"
+                    : hasLiked 
                     ? "bg-[var(--accent)] text-[var(--bg-base)] shadow-lg shadow-[var(--accent-glow)]" 
                     : "bg-[var(--bg-hover)] text-[var(--text-primary)] border border-[var(--border-subtle)] hover:border-[var(--accent)]"
                 }`}
             >
                 <Heart 
-                    className={`w-4 h-4 transition-all duration-300 ${hasLiked ? "fill-current scale-110" : "fill-none group-hover:scale-125"}`} 
+                    className={`w-4 h-4 transition-all duration-300 ${isCreator ? "fill-[var(--accent)]/20" : hasLiked ? "fill-current scale-110" : "fill-none group-hover:scale-125"}`} 
                 />
-                <span className="text-xs font-bold">{hasLiked ? "Liked" : "Like"}</span>
-                <span className="text-[10px] opacity-60 ml-1">({localAlbum?.likedBy?.length || 0})</span>
+                <span className="text-xs font-bold">{isCreator ? "Your Content" : hasLiked ? "Pinned to Library" : "Love this Album"}</span>
             </button>
           </div>
           {localAlbum?.price > 0 && !localAlbum?.isFree && (

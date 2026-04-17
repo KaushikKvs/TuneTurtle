@@ -16,8 +16,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.io.IOException;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.FindAndModifyOptions;
 import org.springframework.data.mongodb.core.query.Update;
 import java.util.List;
 import java.util.Map;
@@ -79,6 +80,10 @@ public class AlbumService {
     public Album toggleLikeAlbum(String id, String userId) {
         Album album = albumRepository.findById(id).orElseThrow(() -> new RuntimeException("Album Not Found"));
         
+        if (album.getArtistId() != null && album.getArtistId().equals(userId)) {
+            throw new RuntimeException("You cannot like your own creation");
+        }
+        
         Query query = new Query(Criteria.where("id").is(id));
         Update update = new Update();
         
@@ -88,7 +93,7 @@ public class AlbumService {
             update.addToSet("likedBy", userId);
         }
         
-        return mongoTemplate.findAndModify(query, update, Album.class);
+        return mongoTemplate.findAndModify(query, update, FindAndModifyOptions.options().returnNew(true), Album.class);
     }
 
 

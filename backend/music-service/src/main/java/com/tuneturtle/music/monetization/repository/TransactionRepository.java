@@ -13,4 +13,5 @@ public interface TransactionRepository extends MongoRepository<Transaction, Stri
     List<Transaction> findByFanId(String fanId);
     List<Transaction> findByFanIdAndExpiryDateAfter(String fanId, LocalDateTime now);
     Optional<Transaction> findByPaymentReference(String paymentReference);
+    Optional<Transaction> findFirstByPaymentReference(String paymentReference);
 }

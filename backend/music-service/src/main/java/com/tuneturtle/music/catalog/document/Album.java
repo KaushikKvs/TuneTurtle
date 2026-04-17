@@ -19,6 +19,7 @@ public class Album {
     private Double price;
     private Boolean isFree;
     private Set<String> likedBy = new HashSet<>();
+    private long views = 0;
 
     public Album() {}
     public Album(String id, String name, String desc, String bgColor, String imageUrl, String artistId, Double price, Boolean isFree, Set<String> likedBy) {

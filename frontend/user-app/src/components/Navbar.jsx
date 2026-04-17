@@ -59,47 +59,49 @@ const Navbar = ({ playerVisible, setPlayerVisible }) => {
 
   return (
     <>
-      <div className="w-full flex justify-between items-center font-semibold">
-        <div className="flex items-center gap-2">
-          {/* Sidebar Toggle */}
-          <div
-            onClick={toggleSidebar}
-            className={`w-8 h-8 rounded-2xl cursor-pointer transition-all duration-300 flex items-center justify-center border border-[var(--border-subtle)] hover:border-[var(--accent)] hover:shadow-[0_0_10px_var(--accent-glow)] ${isSidebarOpen ? 'bg-[var(--bg-surface)] text-[var(--accent)] shadow-[0_0_10px_var(--accent-glow)]' : 'bg-[var(--bg-base)] text-[var(--text-primary)] hover:text-[var(--accent)]'}`}
-            title="Toggle Library"
-          >
-            {isSidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-          </div>
-
-          <div
-            onClick={() => navigate(-1)}
-            className="w-8 h-8 bg-[var(--bg-base)] p-2 rounded-2xl cursor-pointer hover:opacity-80 transition-all flex items-center justify-center border border-[var(--border-subtle)]"
-          >
-            <ChevronLeft className="w-4 h-4 text-[var(--text-primary)]" />
-          </div>
-
-          <div
-            onClick={() => navigate(1)}
-            className="w-8 h-8 bg-[var(--bg-base)] p-2 rounded-2xl cursor-pointer hover:opacity-80 transition-all flex items-center justify-center border border-[var(--border-subtle)]"
-          >
-            <ChevronRight className="w-4 h-4 text-[var(--text-primary)]" />
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4">
-          {menuItems.map((item) => (
-            <p 
-              key={item.path}
-              onClick={() => navigate(item.path)}
-              className={getTabClass(item.path)}
+      <div className="w-full grid grid-cols-3 items-center font-semibold">
+        {/* LEFT ZONE: Navigation & Tabs */}
+        <div className="flex items-center gap-5">
+          <div className="flex items-center gap-2">
+            <div
+              onClick={toggleSidebar}
+              className={`w-8 h-8 rounded-2xl cursor-pointer transition-all duration-300 flex items-center justify-center border border-[var(--border-subtle)] hover:border-[var(--accent)] hover:shadow-[0_0_10px_var(--accent-glow)] ${isSidebarOpen ? 'bg-[var(--bg-surface)] text-[var(--accent)] shadow-[0_0_10px_var(--accent-glow)]' : 'bg-[var(--bg-base)] text-[var(--text-primary)] hover:text-[var(--accent)]'}`}
+              title="Toggle Library"
             >
-              {item.label}
-            </p>
-          ))}
+              {isSidebarOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </div>
+
+            <div
+              onClick={() => navigate(-1)}
+              className="w-8 h-8 bg-[var(--bg-base)] p-2 rounded-2xl cursor-pointer hover:opacity-80 transition-all flex items-center justify-center border border-[var(--border-subtle)]"
+            >
+              <ChevronLeft className="w-4 h-4 text-[var(--text-primary)]" />
+            </div>
+
+            <div
+              onClick={() => navigate(1)}
+              className="w-8 h-8 bg-[var(--bg-base)] p-2 rounded-2xl cursor-pointer hover:opacity-80 transition-all flex items-center justify-center border border-[var(--border-subtle)]"
+            >
+              <ChevronRight className="w-4 h-4 text-[var(--text-primary)]" />
+            </div>
+          </div>
+          
+          <div className="hidden lg:flex items-center gap-3">
+            {menuItems.map((item) => (
+              <p 
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className={getTabClass(item.path)}
+              >
+                {item.label}
+              </p>
+            ))}
+          </div>
         </div>
 
-        {/* Central TuneTurtle Logo — Click to toggle Player */}
-        {user?.role === 'ARTIST' && (
-          <div className="flex-1 flex justify-center items-center h-12 px-8 mx-auto">
+        {/* CENTER ZONE: The Glowing Turtle (Mathematically Centered) */}
+        <div className="flex justify-center items-center">
+          {user && (
             <div 
               onClick={() => setPlayerVisible(!playerVisible)}
               className={`w-12 h-12 shrink-0 cursor-pointer transition-all duration-500 hover:scale-110 active:scale-95 ${playerVisible ? 'animate-pulse-slow' : 'opacity-60 hover:opacity-100'}`}
@@ -119,19 +121,20 @@ const Navbar = ({ playerVisible, setPlayerVisible }) => {
                   : 'drop-shadow(0 0 4px var(--accent-glow))'
               }}
             />
-          </div>
-        )}
+          )}
+        </div>
 
-        <div className="flex items-center gap-4">
+        {/* RIGHT ZONE: Cart, Dashboard & Profile */}
+        <div className="flex items-center justify-end gap-3 text-sm">
           {user?.role !== "ADMIN" && (
             <button
               onClick={() => navigate("/cart")}
-              className="relative bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-subtle)] px-4 py-2 rounded-full text-[13px] font-bold hover:bg-[var(--bg-hover)] transition-all flex items-center gap-2"
+              className="relative bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--border-subtle)] px-4 py-2 rounded-full font-bold hover:bg-[var(--bg-hover)] transition-all flex items-center gap-2 group"
             >
-              <ShoppingCart className="w-4 h-4" />
-              Cart
+              <ShoppingCart className="w-4 h-4 group-hover:text-[var(--accent)] transition-colors" />
+              <span className="hidden xl:inline">Cart</span>
               {cartItems.length > 0 && (
-                <span className="absolute -top-2 -right-2 min-w-5 h-5 px-1 rounded-full text-[10px] font-black bg-[var(--accent)] text-[var(--bg-base)] flex items-center justify-center">
+                <span className="absolute -top-1.5 -right-1.5 min-w-4 h-4 px-1 rounded-full text-[9px] font-black bg-[var(--accent)] text-[var(--bg-base)] flex items-center justify-center shadow-lg shadow-[var(--accent-glow)]">
                   {cartItems.length}
                 </span>
               )}
@@ -141,25 +144,25 @@ const Navbar = ({ playerVisible, setPlayerVisible }) => {
           {user?.role === "ARTIST" && (
             <button
               onClick={() => navigate("/dashboard")}
-              className="bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--dashboard-accent)]/30 px-6 py-2 rounded-full text-[13px] font-bold hover:bg-[var(--dashboard-accent)] hover:text-[var(--bg-base)] transition-all hover:shadow-[0_0_15px_var(--accent-glow)] active:scale-95"
+              className="bg-[var(--bg-surface)] text-[var(--text-primary)] border border-[var(--dashboard-accent)]/30 px-5 py-2 rounded-full font-bold hover:bg-[var(--dashboard-accent)] hover:text-[var(--bg-base)] transition-all hover:shadow-[0_0_15px_var(--accent-glow)] active:scale-95 hidden sm:block"
             >
-              Artist Dashboard
+              Dashboard
             </button>
           )}
           {user?.role === "ADMIN" && (
             <button
               onClick={() => window.open('http://localhost:5174', '_blank')}
-              className="bg-[var(--bg-surface)] text-[var(--text-primary)] border border-blue-500/30 px-6 py-2 rounded-full text-[13px] font-bold hover:bg-blue-600 hover:text-white transition-all hover:shadow-[0_0_15px_rgba(37,99,235,0.3)] active:scale-95 flex items-center gap-2"
+              className="bg-[var(--bg-surface)] text-[var(--text-primary)] border border-blue-500/30 px-5 py-2 rounded-full font-bold hover:bg-blue-600 hover:text-white transition-all hover:shadow-[0_0_15px_rgba(37,99,235,0.3)] active:scale-95 flex items-center gap-2"
             >
               Admin Panel
             </button>
           )}
 
           {/* User Avatar Dropdown */}
-          <div className="relative" ref={dropdownRef}>
+          <div className="relative ml-2" ref={dropdownRef}>
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="w-9 h-9 bg-[var(--accent)] rounded-lg flex items-center justify-center text-[var(--bg-base)] font-black shadow-lg shadow-[var(--accent-glow)] hover:scale-105 active:scale-95 transition-transform cursor-pointer"
+              className="w-10 h-10 bg-[var(--accent)] rounded-xl flex items-center justify-center text-[var(--bg-base)] font-black shadow-lg shadow-[var(--accent-glow)] hover:scale-105 active:scale-95 transition-transform cursor-pointer border border-white/10"
               title={user?.email}
             >
               {user?.email?.charAt(0).toUpperCase() || "U"}
@@ -168,7 +171,7 @@ const Navbar = ({ playerVisible, setPlayerVisible }) => {
             {/* Dropdown Menu */}
             {dropdownOpen && (
               <div className="absolute right-0 mt-3 w-64 z-50 animate-slide-up">
-                <div className="w-full premium-tracer bg-[var(--bg-surface)]/90 backdrop-blur-2xl rounded-2xl shadow-[0_15px_40px_var(--bg-base)] overflow-hidden border border-[var(--border-subtle)]/50">
+                <div className="w-full premium-tracer bg-[var(--bg-surface)]/95 backdrop-blur-2xl rounded-2xl shadow-[0_15px_40px_var(--bg-base)] overflow-hidden border border-[var(--border-subtle)]/50">
                   {/* User Info Header with Neon Glow */}
                   <div className="px-5 py-4 border-b border-[var(--border-subtle)] bg-gradient-to-br from-[var(--bg-base)] to-[var(--bg-surface)]">
                     <p className="text-sm font-black text-[var(--text-primary)] truncate drop-shadow-[0_0_8px_var(--accent-glow)]">{user?.email}</p>

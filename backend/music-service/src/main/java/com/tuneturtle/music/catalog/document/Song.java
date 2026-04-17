@@ -23,6 +23,7 @@ public class Song {
     private Double price;
     private Boolean isFree;
     private Set<String> likedBy = new HashSet<>();
+    private long views = 0;
     private java.time.LocalDateTime createdAt = java.time.LocalDateTime.now();
 
     public Song() {}

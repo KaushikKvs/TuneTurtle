@@ -30,6 +30,7 @@
 		<java.version>17</java.version>
 		<lombok.version>1.18.34</lombok.version> <!-- Latest stable -->
 		<maven.compiler.plugin.version>3.11.0</maven.compiler.plugin.version>
+		<spring-cloud-aws.version>3.3.0</spring-cloud-aws.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -100,7 +101,30 @@
 			<version>0.12.3</version>
 			<scope>runtime</scope>
 		</dependency>
+		<!-- Caffeine Cache for Analytics Deduplication -->
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+		</dependency>
+
+		<!-- AWS Secrets Manager -->
+		<dependency>
+			<groupId>io.awspring.cloud</groupId>
+			<artifactId>spring-cloud-aws-starter-secrets-manager</artifactId>
+		</dependency>
 	</dependencies>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>io.awspring.cloud</groupId>
+				<artifactId>spring-cloud-aws-dependencies</artifactId>
+				<version>${spring-cloud-aws.version}</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
 	<build>
 		<plugins>
